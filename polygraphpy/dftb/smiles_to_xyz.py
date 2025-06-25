@@ -6,8 +6,6 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from tqdm import tqdm
 from joblib import Parallel, delayed
-from polygraphpy.core.molecule import Molecule
-from polygraphpy.core.polymer import Polymer
 
 # Set up logging
 logging.getLogger('rdkit').setLevel(logging.ERROR)
@@ -17,7 +15,7 @@ logging.basicConfig(filename='xyz_generation_errors.log', level=logging.INFO,
 class XyzGeneratorBase:
     """Base class for generating .xyz files from molecular structures."""
     
-    def __init__(self, output_dir: str = 'xyz_files'):
+    def __init__(self, output_dir: str = 'polygraphpy/data/xyz_files'):
         """Initialize with output directory."""
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
@@ -38,7 +36,7 @@ class XyzGeneratorBase:
 class MonomerXyzGenerator(XyzGeneratorBase):
     """Generate .xyz files for monomers from SMILES strings."""
     
-    def __init__(self, input_csv: str, output_dir: str = 'xyz_files'):
+    def __init__(self, input_csv: str, output_dir: str = 'polygraphpy/data/xyz_files'):
         """Initialize with input CSV and output directory."""
         super().__init__(output_dir)
         self.df = pd.read_csv(input_csv)
@@ -83,7 +81,7 @@ class MonomerXyzGenerator(XyzGeneratorBase):
 class PolymerXyzGenerator(XyzGeneratorBase):
     """Generate .xyz files for homopolymers from acrylate monomers."""
     
-    def __init__(self, input_csv: str, output_dir: str = 'xyz_files'):
+    def __init__(self, input_csv: str, output_dir: str = 'polygraphpy/data/xyz_files'):
         """Initialize with input CSV and output directory."""
         super().__init__(output_dir)
         self.df = pd.read_csv(input_csv)

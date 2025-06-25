@@ -1,1 +1,2 @@
-include polygraphpy/data/.csv
+include polygraphpy/data/full_dataset.csv
+include polygraphpy/data/reduced_dataset.csv

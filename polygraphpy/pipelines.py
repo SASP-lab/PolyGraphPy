@@ -10,7 +10,7 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False,
     """Run the full DFTB+ pipeline."""
     # Step 1: Generate .xyz files
     if use_example_data:
-        with resources.path("polygraphpy.data", "pubchem_dataset.csv") as csv_path:
+        with resources.path("polygraphpy.data", "reduced_dataset.csv") as csv_path:
             input_csv = str(csv_path)
     
     if input_csv is None:
@@ -25,7 +25,7 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False,
     
     # Step 2: Generate DFTB+ input files
     input_generator = DFTBInputGenerator()
-    xyz_files = [os.path.join('xyz_files', f) for f in os.listdir('xyz_files') if f.endswith('.xyz')]
+    xyz_files = [os.path.join('polygraphpy/data/xyz_files', f) for f in os.listdir('polygraphpy/data/xyz_files') if f.endswith('.xyz')]
     input_results = [input_generator.prepare_input(xyz_file) for xyz_file in xyz_files]
     print(f"Input generation complete: {sum(input_results)} inputs created")
     
