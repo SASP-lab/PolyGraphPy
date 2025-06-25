@@ -17,7 +17,6 @@ class XyzGeneratorBase:
     
     def __init__(self, output_dir: str = 'polygraphpy/data/xyz_files'):
         """Initialize with output directory."""
-        print(output_dir)
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
     
