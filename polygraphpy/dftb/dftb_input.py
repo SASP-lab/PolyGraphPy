@@ -7,7 +7,7 @@ from polygraphpy.core.simulator import Simulator
 class DFTBInputGenerator(Simulator):
     """Generate DFTB+ input files (dftb_in.hsd) for .xyz files."""
     
-    def __init__(self, xyz_dir: str = 'xyz_files', molecules_dir: str = 'polygraphpy/data/molecules',
+    def __init__(self, xyz_dir: str = 'polygraphpy/data/xyz_files', molecules_dir: str = 'polygraphpy/data/molecules',
                  sk_dir: str = '3ob-3-1', log_file: str = 'dftb_pipeline.log'):
         """Initialize with directories and log file."""
         super().__init__()
@@ -69,7 +69,7 @@ class DFTBInputGenerator(Simulator):
                 return False
             
             hsd_content = f"""Geometry = xyzFormat {{
-   <<< '../../{self.xyz_dir}/{base_name}.xyz'
+   <<< '../../../../{self.xyz_dir}/{base_name}.xyz'
 }}
 
 Driver = GeometryOptimization {{
@@ -92,7 +92,7 @@ Hamiltonian = DFTB {{
             hsd_content += f"""   }}
         
    SlaterKosterFiles = Type2FileNames {{
-      Prefix = '../../{self.sk_dir}/'
+      Prefix = '../../../../{self.sk_dir}/'
       Separator = '-'
       Suffix = '.skf'
       LowerCaseTypeName = No

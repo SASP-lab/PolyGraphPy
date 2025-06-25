@@ -10,8 +10,8 @@ from polygraphpy.core.simulator import Simulator
 class DFTBSimulation(Simulator):
     """Run DFTB+ simulations for .xyz files."""
     
-    def __init__(self, xyz_dir: str = 'xyz_files', molecules_dir: str = 'molecules',
-                 log_file: str = 'dftb_pipeline.log', processes: int = 20,
+    def __init__(self, xyz_dir: str = 'polygraphpy/data/xyz_files', molecules_dir: str = 'polygraphpy/data/molecules',
+                 log_file: str = 'dftb_pipeline.log', processes: int = 8,
                  dftbplus_path: str = None):
         """Initialize with directories, log file, number of processes, and optional DFTB+ path."""
         super().__init__()
@@ -43,35 +43,7 @@ class DFTBSimulation(Simulator):
         env_path = os.environ.get("DFTBPLUS_PATH", None)
         if env_path and os.path.isfile(os.path.join(env_path, "dftb+")):
             full_path = os.path.join(env_path, "dftb+")
-            try:
-                subprocess.run([full_path, "--version"], capture_output=True, check=True)
-                return [full_path]
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                pass
-        
-        # Try to find dftb+ in PATH using shutil.which
-        dftb_path = shutil.which("dftb+")
-        if dftb_path:
-            try:
-                subprocess.run([dftb_path, "--version"], capture_output=True, check=True)
-                return [dftb_path]
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                pass
-        
-        # Fall back to common locations
-        possible_paths = [
-            "/usr/local/bin/dftb+",
-            "/usr/bin/dftb+",
-            os.path.expanduser("~/bin/dftb+"),
-            os.path.expanduser("~/dftbplus/bin/dftb+")
-        ]
-        for path in possible_paths:
-            if os.path.isfile(path):
-                try:
-                    subprocess.run([path, "--version"], capture_output=True, check=True)
-                    return [path]
-                except (subprocess.CalledProcessError, FileNotFoundError):
-                    continue
+            return [full_path]
         
         # If no valid executable is found, raise an error
         with open(self.log_file, "a") as log:
@@ -89,28 +61,26 @@ class DFTBSimulation(Simulator):
             job_dir = os.path.join(self.molecules_dir, base_name)
             hsd_file = os.path.join(job_dir, "dftb_in.hsd")
             job_log = os.path.join(job_dir, "process.log")
+
+            os.makedirs(job_dir, exist_ok=True) 
             
             if not os.path.exists(hsd_file):
                 with open(self.log_file, "a") as log:
                     log.write(f"Error: Input file {hsd_file} not found at {datetime.now()}\n")
                 return
             
-            os.chdir(job_dir)
             result = subprocess.run(
                 self.dftbplus_cmd + [hsd_file],
                 capture_output=True,
                 text=True,
-                timeout=600
+                cwd=job_dir,
+                timeout=6000
             )
+
             if result.returncode == 0:
-                with open(self.log_file, "a") as log:
-                    log.write(f"Successfully completed DFTB+ for {xyz_file} at {datetime.now()}\n")
                 with open(job_log, "a") as log:
                     log.write(f"Successfully completed DFTB+ for {xyz_file} at {datetime.now()}\n")
             else:
-                with open(self.log_file, "a") as log:
-                    log.write(f"Error running DFTB+ for {xyz_file} at {datetime.now()}\n")
-                    log.write(f"DFTB+ output for {xyz_file}:\n{result.stderr}\n")
                 with open(job_log, "a") as log:
                     log.write(f"Error running DFTB+ for {xyz_file} at {datetime.now()}\n")
                     log.write(f"DFTB+ output for {xyz_file}:\n{result.stderr}\n")
