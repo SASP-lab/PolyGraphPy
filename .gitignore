@@ -182,3 +182,4 @@ cython_debug/
 
 molecules/
 xyz_files/
+.DS_Store
