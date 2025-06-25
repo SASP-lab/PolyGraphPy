@@ -7,7 +7,7 @@ from polygraphpy.core.simulator import Simulator
 class PolarizabilityTrace(Simulator):
     """Compute and save polarizability traces from DFTB+ output."""
     
-    def __init__(self, molecules_dir: str = 'molecules'):
+    def __init__(self, molecules_dir: str = 'polygraphpy/data/molecules'):
         """Initialize with molecules directory."""
         super().__init__()
         self.molecules_dir = molecules_dir
