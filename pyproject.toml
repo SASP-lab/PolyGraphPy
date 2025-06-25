@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "PolyGraphPy"
+version = "0.1.0"
+description = "A Python package for polymer simulations and property prediction"
+readme = "README.md"
+requires-python = ">=3.13"
+license = {file = "LICENSE"}
+authors = [{name = "João Gabriel Duarte", email = "dacos033@umn.edu"}]
+dependencies = [
+    "rdkit>=2022.9.1",
+    "torch>=2.0.0",
+    "pandas>=1.5.0",
+    "tqdm>=4.65.0",
+    "joblib>=1.2.0",
+    "numpy>=1.24.0",
+    "stk>=0.2.0",
+    "click>=8.1.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/PolyGraphPy"
+Documentation = "https://polygraphpy.readthedocs.io"
+Repository = "https://github.com/yourusername/PolyGraphPy"
+
+[tool.setuptools]
+include-package-data = true

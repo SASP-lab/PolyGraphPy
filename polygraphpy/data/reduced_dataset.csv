@@ -1,0 +1,9 @@
+id,name,smiles
+8846,Butyl Acrylate,CCCCOC(=O)C=C
+8821,Ethyl acrylate,CCOC(=O)C=C
+7294,Methyl acrylate,COC(=O)C=C
+39485,2-Phenoxyethyl acrylate,C=CC(=O)OCCOC1=CC=CC=C1
+75617,Benzyl acrylate,C=CC(=O)OCC1=CC=CC=C1
+67889,"2,2,2-Trifluoroethyl acrylate",C=CC(=O)OCC(F)(F)F
+15621059,"2-Propenoic acid, [1,1'-biphenyl]-4-ylmethyl ester",C=CC(=O)OCC1=CC=C(C=C1)C2=CC=CC=C2
+13774217,4-Bromophenyl acrylate,C=CC(=O)OC1=CC=C(C=C1)Br

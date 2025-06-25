@@ -1,12 +1,21 @@
 import os
+import importlib.resources as resources
 from polygraphpy.dftb.smiles_to_xyz import MonomerXyzGenerator, PolymerXyzGenerator
 from polygraphpy.dftb.dftb_input import DFTBInputGenerator
 from polygraphpy.dftb.dftb_simulation import DFTBSimulation
 from polygraphpy.dftb.polarizability_trace import PolarizabilityTrace
 
-def run_dftb_pipeline(input_csv: str, is_polymer: bool = False, dftbplus_path: str = None):
+def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, 
+                      dftbplus_path: str = None, use_example_data: bool = False):
     """Run the full DFTB+ pipeline."""
     # Step 1: Generate .xyz files
+    if use_example_data:
+        with resources.path("polygraphpy.data", "pubchem_dataset.csv") as csv_path:
+            input_csv = str(csv_path)
+    
+    if input_csv is None:
+        raise ValueError("input_csv must be provided unless use_example_data is True")
+    
     if is_polymer:
         xyz_generator = PolymerXyzGenerator(input_csv)
     else:
