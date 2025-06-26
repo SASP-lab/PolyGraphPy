@@ -104,6 +104,8 @@ class PolymerXyzGenerator(XyzGeneratorBase):
         if not mol.HasSubstructMatch(acrylate_pattern):
             raise ValueError("No acrylate group (C=C-C(=O)O) found")
         
+        CONECTANDO NO OXIGENIO
+
         matches = mol.GetSubstructMatches(acrylate_pattern)
         match = matches[0]
         c1_idx, c2_idx = match[0], match[1]
@@ -128,6 +130,7 @@ class PolymerXyzGenerator(XyzGeneratorBase):
                 logging.warning(f"ID {mol_id} with SMILES {sml} is not an acrylate")
                 return f"Skipping ID {mol_id}: Not an acrylate"
             
+            #[TODO]: user defined
             sml_bromo = self.replace_first_acrylate_cce(sml)
             bb1 = stk.BuildingBlock(sml_bromo, [stk.BromoFactory()])
             bb2 = stk.BuildingBlock(sml_bromo, [stk.BromoFactory()])
@@ -152,18 +155,18 @@ class PolymerXyzGenerator(XyzGeneratorBase):
             rdkit_polymer = rw_mol.GetMol()
             Chem.SanitizeMol(rdkit_polymer)
             
-            params = AllChem.ETKDGv3()
-            params.useRandomCoords = True
-            params.maxIterations = 1000
-            params.numThreads = 1
-            params.randomSeed = 42
-            if AllChem.EmbedMolecule(rdkit_polymer, params) == -1:
-                logging.warning(f"Embedding failed for homopolymer {mol_id}")
+            # params = AllChem.ETKDGv3()
+            # params.useRandomCoords = True
+            # params.maxIterations = 1000
+            # params.numThreads = 1
+            # params.randomSeed = 42
+            # if AllChem.EmbedMolecule(rdkit_polymer, params) == -1:
+            #     logging.warning(f"Embedding failed for homopolymer {mol_id}")
             
-            AllChem.MMFFOptimizeMolecule(rdkit_polymer)
-            polymer = polymer.with_position_matrix(
-                position_matrix=rdkit_polymer.GetConformer().GetPositions()
-            )
+            # AllChem.MMFFOptimizeMolecule(rdkit_polymer)
+            # polymer = polymer.with_position_matrix(
+            #     position_matrix=rdkit_polymer.GetConformer().GetPositions()
+            # )
             
             xyz_filename = os.path.join(self.output_dir, f"homopoly_{mol_id}.xyz")
             self.write_xyz_file(rdkit_polymer, xyz_filename)
