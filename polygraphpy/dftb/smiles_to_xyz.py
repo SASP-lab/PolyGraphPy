@@ -96,32 +96,55 @@ class PolymerXyzGenerator(XyzGeneratorBase):
     
     def replace_first_acrylate_cce(self, smiles: str) -> str:
         """Replace C=C in acrylate group with single bond and add Br atoms."""
+        # Convert SMILES to molecule
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             raise ValueError("Invalid SMILES string")
         
-        acrylate_pattern = Chem.MolFromSmarts('C=C-C(=O)O')
+        # Flexible SMARTS pattern for acrylate group
+        acrylate_pattern = Chem.MolFromSmarts('[C:1]=[C:2][C:3](=O)[O:4]')
         if not mol.HasSubstructMatch(acrylate_pattern):
-            raise ValueError("No acrylate group (C=C-C(=O)O) found")
-        
-        CONECTANDO NO OXIGENIO
-        DESCOBRIR O GRUPO VINYL E PROCURAR PELOS CARBONOS CONNECTADOS DUPLAMENTE
+            raise ValueError("No acrylate group found")
 
+        # Get the first acrylate match
         matches = mol.GetSubstructMatches(acrylate_pattern)
         match = matches[0]
-        c1_idx, c2_idx = match[0], match[1]
-        
+        c1_idx, c2_idx = match[0], match[1]  # Indices of [C:1]=[C:2]
+
+        # Existing verification: Check the bond between c1_idx and c2_idx
         bond = mol.GetBondBetweenAtoms(c1_idx, c2_idx)
         if bond is None or bond.GetBondType() != Chem.BondType.DOUBLE:
             raise ValueError("Expected double bond not found in acrylate group")
-        
+
+        # Additional bond-based verification (inspired by provided snippet)
+        found_cc_double = False
+        for bond in mol.GetBonds():
+            if bond.GetIdx() == bond.GetIdx() and bond.GetBondType() == Chem.BondType.DOUBLE:
+                atom1 = bond.GetBeginAtom()
+                atom2 = bond.GetEndAtom()
+                if (atom1.GetIdx() == c1_idx and atom2.GetIdx() == c2_idx) or \
+                (atom1.GetIdx() == c2_idx and atom2.GetIdx() == c1_idx):
+                    if atom1.GetSymbol() == 'C' and atom2.GetSymbol() == 'C':
+                        found_cc_double = True
+                        break
+        if not found_cc_double:
+            raise ValueError("No carbon-carbon double bond found in acrylate group at matched indices")
+
+        # Modify the molecule
         rw_mol = Chem.RWMol(mol)
-        bond.SetBondType(Chem.BondType.SINGLE)
+        rw_bond = rw_mol.GetBondBetweenAtoms(c1_idx, c2_idx)
+        rw_bond.SetBondType(Chem.BondType.SINGLE)
         br1 = rw_mol.AddAtom(Chem.Atom('Br'))
         br2 = rw_mol.AddAtom(Chem.Atom('Br'))
         rw_mol.AddBond(c1_idx, br1, Chem.BondType.SINGLE)
         rw_mol.AddBond(c2_idx, br2, Chem.BondType.SINGLE)
-        Chem.SanitizeMol(rw_mol)
+        
+        # Sanitize the modified molecule
+        try:
+            Chem.SanitizeMol(rw_mol)
+        except Chem.MolSanitizeException as e:
+            raise ValueError("Failed to sanitize modified molecule: " + str(e))
+        
         return Chem.MolToSmiles(rw_mol, isomericSmiles=True)
     
     def build_and_save_homopolymer(self, sml: str, mol_id: str) -> str:
@@ -140,7 +163,7 @@ class PolymerXyzGenerator(XyzGeneratorBase):
                 topology_graph=stk.polymer.Linear(
                     building_blocks=(bb1, bb2),
                     repeating_unit='AB',
-                    num_repeating_units=4,
+                    num_repeating_units=2,
                     optimizer=stk.Collapser(scale_steps=False),
                 ),
             )
@@ -156,18 +179,18 @@ class PolymerXyzGenerator(XyzGeneratorBase):
             rdkit_polymer = rw_mol.GetMol()
             Chem.SanitizeMol(rdkit_polymer)
             
-            # params = AllChem.ETKDGv3()
-            # params.useRandomCoords = True
-            # params.maxIterations = 1000
-            # params.numThreads = 1
-            # params.randomSeed = 42
-            # if AllChem.EmbedMolecule(rdkit_polymer, params) == -1:
-            #     logging.warning(f"Embedding failed for homopolymer {mol_id}")
+            params = AllChem.ETKDGv3()
+            params.useRandomCoords = True
+            params.maxIterations = 1000
+            params.numThreads = 1
+            params.randomSeed = 42
+            if AllChem.EmbedMolecule(rdkit_polymer, params) == -1:
+                logging.warning(f"Embedding failed for homopolymer {mol_id}")
             
-            # AllChem.MMFFOptimizeMolecule(rdkit_polymer)
-            # polymer = polymer.with_position_matrix(
-            #     position_matrix=rdkit_polymer.GetConformer().GetPositions()
-            # )
+            AllChem.MMFFOptimizeMolecule(rdkit_polymer)
+            polymer = polymer.with_position_matrix(
+                position_matrix=rdkit_polymer.GetConformer().GetPositions()
+            )
             
             xyz_filename = os.path.join(self.output_dir, f"homopoly_{mol_id}.xyz")
             self.write_xyz_file(rdkit_polymer, xyz_filename)
