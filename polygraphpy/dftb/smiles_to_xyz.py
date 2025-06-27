@@ -105,6 +105,7 @@ class PolymerXyzGenerator(XyzGeneratorBase):
             raise ValueError("No acrylate group (C=C-C(=O)O) found")
         
         CONECTANDO NO OXIGENIO
+        DESCOBRIR O GRUPO VINYL E PROCURAR PELOS CARBONOS CONNECTADOS DUPLAMENTE
 
         matches = mol.GetSubstructMatches(acrylate_pattern)
         match = matches[0]
