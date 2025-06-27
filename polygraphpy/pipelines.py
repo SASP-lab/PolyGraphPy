@@ -6,7 +6,7 @@ from polygraphpy.dftb.dftb_simulation import DFTBSimulation
 from polygraphpy.dftb.polarizability_trace import PolarizabilityTrace
 
 def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, 
-                      dftbplus_path: str = None, use_example_data: bool = False):
+                      dftbplus_path: str = None, use_example_data: bool = False, polymer_chain_size: int = 2):
     """Run the full DFTB+ pipeline."""
     # Step 1: Generate .xyz files
     if use_example_data:
@@ -17,7 +17,7 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False,
         raise ValueError("input_csv must be provided unless use_example_data is True")
     
     if is_polymer:
-        xyz_generator = PolymerXyzGenerator(input_csv)
+        xyz_generator = PolymerXyzGenerator(input_csv, polymer_chain_size=polymer_chain_size)
     else:
         xyz_generator = MonomerXyzGenerator(input_csv)
     xyz_results = xyz_generator.generate()

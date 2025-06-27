@@ -11,7 +11,7 @@ class DFTBSimulation(Simulator):
     """Run DFTB+ simulations for .xyz files."""
     
     def __init__(self, xyz_dir: str = 'polygraphpy/data/xyz_files', molecules_dir: str = 'polygraphpy/data/molecules',
-                 log_file: str = 'dftb_pipeline.log', processes: int = 8,
+                 log_file: str = 'dftb_pipeline.log', processes: int = 20,
                  dftbplus_path: str = None):
         """Initialize with directories, log file, number of processes, and optional DFTB+ path."""
         super().__init__()

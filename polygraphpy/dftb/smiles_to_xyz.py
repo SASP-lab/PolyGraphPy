@@ -17,6 +17,7 @@ class XyzGeneratorBase:
     
     def __init__(self, output_dir: str = 'polygraphpy/data/xyz_files'):
         """Initialize with output directory."""
+        print(output_dir)
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
     
@@ -81,10 +82,11 @@ class MonomerXyzGenerator(XyzGeneratorBase):
 class PolymerXyzGenerator(XyzGeneratorBase):
     """Generate .xyz files for homopolymers from acrylate monomers."""
     
-    def __init__(self, input_csv: str, output_dir: str = 'polygraphpy/data/xyz_files'):
+    def __init__(self, input_csv: str, output_dir: str = 'polygraphpy/data/xyz_files', polymer_chain_size: int = 2):
         """Initialize with input CSV and output directory."""
         super().__init__(output_dir)
         self.df = pd.read_csv(input_csv)
+        self.polymer_chain_size = polymer_chain_size
     
     def is_acrylate(self, smiles: str) -> bool:
         """Check if a SMILES string represents an acrylate."""
@@ -163,7 +165,7 @@ class PolymerXyzGenerator(XyzGeneratorBase):
                 topology_graph=stk.polymer.Linear(
                     building_blocks=(bb1, bb2),
                     repeating_unit='AB',
-                    num_repeating_units=2,
+                    num_repeating_units=self.polymer_chain_size,
                     optimizer=stk.Collapser(scale_steps=False),
                 ),
             )
@@ -192,7 +194,7 @@ class PolymerXyzGenerator(XyzGeneratorBase):
                 position_matrix=rdkit_polymer.GetConformer().GetPositions()
             )
             
-            xyz_filename = os.path.join(self.output_dir, f"homopoly_{mol_id}.xyz")
+            xyz_filename = os.path.join(self.output_dir, f"homopoly_{mol_id}_chain_{self.polymer_chain_size}.xyz")
             self.write_xyz_file(rdkit_polymer, xyz_filename)
             return f"Saved homopolymer: {xyz_filename}"
         
