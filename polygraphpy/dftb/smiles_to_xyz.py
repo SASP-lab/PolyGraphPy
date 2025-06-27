@@ -96,7 +96,7 @@ class PolymerXyzGenerator(XyzGeneratorBase):
         Chem.SanitizeMol(mol, catchErrors=True)
         return mol.HasSubstructMatch(Chem.MolFromSmarts('C=C-C(=O)O'))
     
-    def replace_first_acrylate_cce(self, smiles: str) -> str:
+    def replace_first_acrylate_cce(self, smiles: str, contains_br: bool) -> str:
         """Replace C=C in acrylate group with single bond and add Br atoms."""
         # Convert SMILES to molecule
         mol = Chem.MolFromSmiles(smiles)
@@ -136,8 +136,12 @@ class PolymerXyzGenerator(XyzGeneratorBase):
         rw_mol = Chem.RWMol(mol)
         rw_bond = rw_mol.GetBondBetweenAtoms(c1_idx, c2_idx)
         rw_bond.SetBondType(Chem.BondType.SINGLE)
-        br1 = rw_mol.AddAtom(Chem.Atom('Br'))
-        br2 = rw_mol.AddAtom(Chem.Atom('Br'))
+        if not contains_br:
+            br1 = rw_mol.AddAtom(Chem.Atom('Br'))
+            br2 = rw_mol.AddAtom(Chem.Atom('Br'))
+        else:
+            br1 = rw_mol.AddAtom(Chem.Atom('I'))
+            br2 = rw_mol.AddAtom(Chem.Atom('I'))
         rw_mol.AddBond(c1_idx, br1, Chem.BondType.SINGLE)
         rw_mol.AddBond(c2_idx, br2, Chem.BondType.SINGLE)
         
@@ -156,10 +160,17 @@ class PolymerXyzGenerator(XyzGeneratorBase):
                 logging.warning(f"ID {mol_id} with SMILES {sml} is not an acrylate")
                 return f"Skipping ID {mol_id}: Not an acrylate"
             
+            contains_br = sml.__contains__('Br')
+            
             #[TODO]: user defined
-            sml_bromo = self.replace_first_acrylate_cce(sml)
-            bb1 = stk.BuildingBlock(sml_bromo, [stk.BromoFactory()])
-            bb2 = stk.BuildingBlock(sml_bromo, [stk.BromoFactory()])
+            sml = self.replace_first_acrylate_cce(sml, contains_br)
+
+            if not contains_br:
+                bb1 = stk.BuildingBlock(sml, [stk.BromoFactory()])
+                bb2 = stk.BuildingBlock(sml, [stk.BromoFactory()])
+            else:
+                bb1 = stk.BuildingBlock(sml, [stk.IodoFactory()])
+                bb2 = stk.BuildingBlock(sml, [stk.IodoFactory()])
             
             polymer = stk.ConstructedMolecule(
                 topology_graph=stk.polymer.Linear(
@@ -175,8 +186,11 @@ class PolymerXyzGenerator(XyzGeneratorBase):
             Chem.SanitizeMol(rdkit_polymer)
             
             rw_mol = Chem.RWMol(rdkit_polymer)
-            bromine_atoms = [atom.GetIdx() for atom in rw_mol.GetAtoms() if atom.GetSymbol() == 'Br']
-            for idx in sorted(bromine_atoms, reverse=True):
+            if not contains_br:
+                atoms_to_remove = [atom.GetIdx() for atom in rw_mol.GetAtoms() if atom.GetSymbol() == 'Br']
+            else:
+                atoms_to_remove = [atom.GetIdx() for atom in rw_mol.GetAtoms() if atom.GetSymbol() == 'I']
+            for idx in sorted(atoms_to_remove, reverse=True):
                 rw_mol.RemoveAtom(idx)
             rdkit_polymer = rw_mol.GetMol()
             Chem.SanitizeMol(rdkit_polymer)
