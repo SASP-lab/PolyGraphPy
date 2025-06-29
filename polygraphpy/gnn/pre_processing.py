@@ -26,6 +26,7 @@ class PreProcess():
 
         for smiles in tqdm(smiles_vec):
             m = Chem.MolFromSmiles(smiles)
+            m = Chem.AddHs(m)
             
             for atom in m.GetAtoms():
                 atoms_list.append({
@@ -99,6 +100,7 @@ class PreProcess():
             bonds = []
             
             m1 = Chem.MolFromSmiles(row.smiles)
+            m1 = Chem.AddHs(m1)
             
             atoms = self.get_nodes_information(m1, atoms)
             
