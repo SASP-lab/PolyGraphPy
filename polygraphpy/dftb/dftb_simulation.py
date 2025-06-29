@@ -61,8 +61,6 @@ class DFTBSimulation(Simulator):
             job_dir = os.path.join(self.molecules_dir, base_name)
             hsd_file = os.path.join(job_dir, "dftb_in.hsd")
             job_log = os.path.join(job_dir, "process.log")
-
-            os.makedirs(job_dir, exist_ok=True) 
             
             if not os.path.exists(hsd_file):
                 with open(self.log_file, "a") as log:
@@ -90,8 +88,6 @@ class DFTBSimulation(Simulator):
                 log.write(f"Error: Failed to run DFTB+ for {xyz_file} at {datetime.now()}: {str(e)}\n")
             with open(job_log, "a") as log:
                 log.write(f"Error: Failed to run DFTB+ for {xyz_file} at {datetime.now()}: {str(e)}\n")
-        finally:
-            os.chdir(os.path.dirname(os.path.abspath(__file__)) or ".")
     
     def run(self) -> None:
         """Run DFTB+ simulations for all .xyz files in parallel."""
