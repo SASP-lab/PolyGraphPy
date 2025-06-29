@@ -35,6 +35,6 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False,
     
     # Step 4: Compute polarizability traces
     trace_processor = PolarizabilityTrace()
-    trace_results = trace_processor.run()
+    trace_results = trace_processor.run(input_csv)
     print(f"Trace computation complete: {len(trace_results)} traces computed")
     return trace_results
