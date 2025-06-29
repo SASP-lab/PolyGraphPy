@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pandas as pd
 import multiprocessing
 from joblib import Parallel, delayed
 from polygraphpy.core.simulator import Simulator
@@ -70,7 +71,7 @@ class PolarizabilityTrace(Simulator):
                         results.append((rel_path, trace))
         return results
     
-    def run(self) -> list:
+    def run(self, input_csv) -> list:
         """Process all subfolders in parallel to compute traces."""
         if not os.path.exists(self.molecules_dir):
             print(f"Error: The folder '{self.molecules_dir}' does not exist.")
@@ -84,7 +85,17 @@ class PolarizabilityTrace(Simulator):
             delayed(self.process_subfolder)(subfolder, self.molecules_dir) for subfolder in subfolders
         )
         
-        return [item for sublist in results for item in sublist]
+        trace_results = [item for sublist in results for item in sublist]
+
+        # Create static polarizability dataset
+        df_polarizability = pd.DataFrame(trace_results)
+        df_polarizability.columns = ['id', 'static_polarizability']
+        df_polarizability['id'] = df_polarizability['id'].str.extract(r'monomer_(\d+)/')[0].astype(int)
+        df_polarizability = df_polarizability.merge(pd.read_csv(input_csv), on=['id'])
+
+        df_polarizability.to_csv('polygraphpy/data/polarizability_data.csv', index=False)
+
+        return trace_results
     
     def process_output(self) -> list:
         """Return results from run method."""
