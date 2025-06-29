@@ -4,6 +4,7 @@ from polygraphpy.dftb.smiles_to_xyz import MonomerXyzGenerator, PolymerXyzGenera
 from polygraphpy.dftb.dftb_input import DFTBInputGenerator
 from polygraphpy.dftb.dftb_simulation import DFTBSimulation
 from polygraphpy.dftb.polarizability_trace import PolarizabilityTrace
+from polygraphpy.gnn.pre_processing import PreProcess
 
 def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, 
                       dftbplus_path: str = None, use_example_data: bool = False, polymer_chain_size: int = 2):
@@ -38,3 +39,17 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False,
     trace_results = trace_processor.run(input_csv)
     print(f"Trace computation complete: {len(trace_results)} traces computed")
     return trace_results
+
+def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', batch_size: int = 8, learning_rate: float = 1e-3, number_conv_channels: int = 120, 
+                     number_fc_channels: int = 120, prediction_target: str = None, polymer_type: str = 'monomer', epochs: int = 100,
+                     train_input_data_path: str = 'polygraphpy/data/training_input_data/', gnn_output_path: str = 'polygraphpy/data/gnn_output/',
+                     validation_data_path: str ='polygraphpy/data/validation_data/', trained_models_path = 'polygraphpy/data/models/'):
+    
+    os.makedirs(train_input_data_path, exist_ok=True)
+    os.makedirs(gnn_output_path, exist_ok=True)
+    os.makedirs(validation_data_path, exist_ok=True)
+    os.makedirs(trained_models_path, exist_ok=True)
+
+    # Step 1: Pre processing data
+    pre_process_engine = PreProcess(input_csv=input_csv, train_input_data_path=train_input_data_path)
+    pre_process_engine.run()
