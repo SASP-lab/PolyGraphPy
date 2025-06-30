@@ -56,6 +56,7 @@ def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', 
     data = pre_process_engine.run()
 
     # Step 2: Creating train and validation dataset
-    train_engine = Train(number_conv_channels, number_fc_channels, data, learning_rate, batch_size, epochs, train_input_data_path, gnn_output_path)
+    train_engine = Train(number_conv_channels, number_fc_channels, data, learning_rate, batch_size, epochs, train_input_data_path, gnn_output_path,
+                         validation_data_path)
     print('oi')
     train_engine.run()

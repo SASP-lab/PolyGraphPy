@@ -9,12 +9,13 @@ from polygraphpy.gnn.models.gcn import GCN
 
 class Train():
     def __init__(self, conv_hidden_channels:int, mlp_hidden_channels:int, data: pd.DataFrame, learning_rate: float, batch_size: int = 8, epochs: int = 100,
-                 train_input_data_path: str = None, gnn_output_path: str = None) -> None:
+                 train_input_data_path: str = None, gnn_output_path: str = None, validation_data_path: str = None) -> None:
         self.training_dataset = []
         self.input_dim = 0
         self.min_val_error = 10e6
         self.train_input_data_path = train_input_data_path
         self.gnn_output_path = gnn_output_path
+        self.validation_data_path = validation_data_path
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.epochs = epochs
@@ -106,7 +107,7 @@ class Train():
 
         i = 0
         for graph in val_dataset:
-            torch.save(graph, f'data/validation_data/{i}.pt')
+            torch.save(graph, f'{self.validation_data_path}/{i}.pt')
             i+=1
     
     def run(self):
