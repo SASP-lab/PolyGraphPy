@@ -17,7 +17,7 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline
 @click.option('--number-fc-channels',  default=120, type=int, help='Number of hidden channels in the MLP layer.')
 @click.option('--prediction-target', help='Name of the target column from input data file.', required=True)
 @click.option('--polymer-type', default='monomer', help='Type of polymers in the input data.')
-@click.option("--epochs", default=100, type=int, help="Number of epochs to train the model.")
+@click.option("--epochs", default=200, type=int, help="Number of epochs to train the model.")
 
 def main(input_csv, polymer, dftbplus_path, use_example_data, polymer_chain_size,
          batch_size, learning_rate, number_conv_channels, number_fc_channels, 
