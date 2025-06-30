@@ -42,7 +42,7 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False,
     return trace_results
 
 def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', batch_size: int = 8, learning_rate: float = 1e-3, number_conv_channels: int = 120, 
-                     number_fc_channels: int = 120, prediction_target: str = None, polymer_type: str = 'monomer', epochs: int = 100,
+                     number_fc_channels: int = 120, prediction_target: str = None, polymer_type: str = 'monomer', epochs: int = 200,
                      train_input_data_path: str = 'polygraphpy/data/training_input_data/', gnn_output_path: str = 'polygraphpy/data/gnn_output/',
                      validation_data_path: str ='polygraphpy/data/validation_data/', trained_models_path = 'polygraphpy/data/models/'):
     
@@ -55,8 +55,7 @@ def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', 
     pre_process_engine = PreProcess(input_csv=input_csv, train_input_data_path=train_input_data_path, polymer_type=polymer_type, target=prediction_target)
     data = pre_process_engine.run()
 
-    # Step 2: Creating train and validation dataset
+    # Step 2: Train GNN model for prediction
     train_engine = Train(number_conv_channels, number_fc_channels, data, learning_rate, batch_size, epochs, train_input_data_path, gnn_output_path,
                          validation_data_path)
-    print('oi')
     train_engine.run()

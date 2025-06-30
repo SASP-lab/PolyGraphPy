@@ -107,7 +107,7 @@ class Train():
 
         i = 0
         for graph in val_dataset:
-            torch.save(graph, f'{self.validation_data_path}/{i}.pt')
+            torch.save(graph, f'{self.validation_data_path}/{graph.id}.pt')
             i+=1
     
     def run(self):
