@@ -147,3 +147,5 @@ class PreProcess():
             bond_encoder = self.make_encoder(unique_bonds_features)
         
             self.prepare_monomer_input_data(atom_encoder, bond_encoder)
+        
+        return self.df

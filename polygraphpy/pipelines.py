@@ -5,6 +5,7 @@ from polygraphpy.dftb.dftb_input import DFTBInputGenerator
 from polygraphpy.dftb.dftb_simulation import DFTBSimulation
 from polygraphpy.dftb.polarizability_trace import PolarizabilityTrace
 from polygraphpy.gnn.pre_processing import PreProcess
+from polygraphpy.gnn.train import Train
 
 def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, 
                       dftbplus_path: str = None, use_example_data: bool = False, polymer_chain_size: int = 2):
@@ -52,4 +53,9 @@ def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', 
 
     # Step 1: Pre processing data
     pre_process_engine = PreProcess(input_csv=input_csv, train_input_data_path=train_input_data_path, polymer_type=polymer_type, target=prediction_target)
-    pre_process_engine.run()
+    data = pre_process_engine.run()
+
+    # Step 2: Creating train and validation dataset
+    train_engine = Train(number_conv_channels, number_fc_channels, data, learning_rate, batch_size, epochs, train_input_data_path, gnn_output_path)
+    print('oi')
+    train_engine.run()
