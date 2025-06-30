@@ -106,8 +106,8 @@ class Train():
         print(f'Saving validation data.')
 
         i = 0
-        for graph in val_dataset:
-            torch.save(graph, f'{self.validation_data_path}/{graph.id}.pt')
+        for graph in tqdm(val_dataset):
+            torch.save(graph, f'{self.validation_data_path}/{graph.mol_id}.pt')
             i+=1
     
     def run(self):
