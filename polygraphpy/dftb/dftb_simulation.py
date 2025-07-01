@@ -22,6 +22,7 @@ class DFTBSimulation(Simulator):
         
         # Set OMP_NUM_THREADS environment variable
         os.environ['OMP_NUM_THREADS'] = '1'
+        os.environ['DFTBPLUS_PATH'] = dftbplus_path
         
         # Find and set DFTB+ executable path
         self.dftbplus_cmd = self._find_dftbplus(dftbplus_path)
@@ -29,15 +30,6 @@ class DFTBSimulation(Simulator):
     
     def _find_dftbplus(self, dftbplus_path: str = None) -> list:
         """Find DFTB+ executable, using provided path or searching system."""
-        # Check if user provided a path
-        if dftbplus_path and os.path.isfile(dftbplus_path):
-            try:
-                subprocess.run([dftbplus_path, "--version"], capture_output=True, check=True)
-                return [dftbplus_path]
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                with open(self.log_file, "a") as log:
-                    log.write(f"Error: Provided DFTB+ path {dftbplus_path} is invalid at {datetime.now()}\n")
-                raise ValueError(f"Invalid DFTB+ executable path: {dftbplus_path}")
         
         # Check DFTBPLUS_PATH environment variable
         env_path = os.environ.get("DFTBPLUS_PATH", None)

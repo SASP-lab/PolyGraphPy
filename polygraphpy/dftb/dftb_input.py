@@ -109,15 +109,6 @@ Analysis = {{
     }}
 }}
 
-ElectronDynamics = {{
-   Steps = 25000
-   TimeStep [au] = 0.1
-   Perturbation = Kick {{
-     PolarizationDirection = all
-   }}
-   FieldStrength [v/a] = 0.001
-}}
-
 ParserOptions {{
    ParserVersion = 14
 }}
