@@ -74,7 +74,7 @@ class DFTBInputGenerator(Simulator):
 
 Driver = GeometryOptimization {{
    Optimizer = Rational {{}}
-   MaxSteps = 10000
+   MaxSteps = 2000
    OutputPrefix = '{base_name}'
    Convergence {{ GradElem = 1E-4 }}
 }}
