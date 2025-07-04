@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import logging
 import stk
+import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from tqdm import tqdm
@@ -25,7 +26,7 @@ class XyzGeneratorBase:
         """Write RDKit molecule to .xyz file."""
         conf = mol.GetConformer()
         num_atoms = mol.GetNumAtoms()
-        with open(filename, 'w') as f:
+        with open(filename+'.xyz', 'w') as f:
             f.write(f"{num_atoms}\n")
             f.write(f"Molecule ID: {os.path.basename(filename).split('.')[0]}\n")
             for i in range(num_atoms):
@@ -33,6 +34,10 @@ class XyzGeneratorBase:
                 pos = conf.GetAtomPosition(i)
                 symbol = atom.GetSymbol()
                 f.write(f"{symbol} {pos.x:.6f} {pos.y:.6f} {pos.z:.6f}\n")
+    
+    def write_pdb_file(mol: Chem.Mol, filename: str) -> None:
+        """Write RDKit molecule to .pdb file."""
+        AllChem.MolToPDBFile(mol, filename+'.pdb')
 
 class MonomerXyzGenerator(XyzGeneratorBase):
     """Generate .xyz files for monomers from SMILES strings."""
@@ -176,8 +181,14 @@ class PolymerXyzGenerator(XyzGeneratorBase):
                 topology_graph=stk.polymer.Linear(
                     building_blocks=(bb1, bb2),
                     repeating_unit='AB',
-                    num_repeating_units=self.polymer_chain_size,
-                    optimizer=stk.Collapser(scale_steps=False),
+                    num_repeating_units=4,
+                    optimizer=stk.MCHammer(
+                        num_steps=4000,  # Increase steps for better optimization
+                        target_bond_length=1.54,  # Target C-C single bond length (Å)
+                        nonbond_sigma = 0.4,
+                        random_seed=None
+                    ),
+                    orientations=[1, 0],
                 ),
             )
             
@@ -187,29 +198,30 @@ class PolymerXyzGenerator(XyzGeneratorBase):
             
             rw_mol = Chem.RWMol(rdkit_polymer)
             if not contains_br:
-                atoms_to_remove = [atom.GetIdx() for atom in rw_mol.GetAtoms() if atom.GetSymbol() == 'Br']
+                atoms_to_replace = [atom.GetIdx() for atom in rw_mol.GetAtoms() if atom.GetSymbol() == 'Br']
             else:
-                atoms_to_remove = [atom.GetIdx() for atom in rw_mol.GetAtoms() if atom.GetSymbol() == 'I']
-            for idx in sorted(atoms_to_remove, reverse=True):
-                rw_mol.RemoveAtom(idx)
+                atoms_to_replace = [atom.GetIdx() for atom in rw_mol.GetAtoms() if atom.GetSymbol() == 'I']
+            for idx in sorted(atoms_to_replace, reverse=True):
+                rw_mol.ReplaceAtom(idx, Chem.Atom('H'))
             rdkit_polymer = rw_mol.GetMol()
             Chem.SanitizeMol(rdkit_polymer)
             
             params = AllChem.ETKDGv3()
             params.useRandomCoords = True
-            params.maxIterations = 1000
+            params.maxIterations = 3000
             params.numThreads = 1
-            params.randomSeed = 42
+            params.randomSeed = np.random.randint(0, 10000)
             if AllChem.EmbedMolecule(rdkit_polymer, params) == -1:
                 logging.warning(f"Embedding failed for homopolymer {mol_id}")
             
-            AllChem.MMFFOptimizeMolecule(rdkit_polymer)
+            AllChem.MMFFOptimizeMolecule(rdkit_polymer, maxIters=1000)
             polymer = polymer.with_position_matrix(
                 position_matrix=rdkit_polymer.GetConformer().GetPositions()
             )
-            
-            xyz_filename = os.path.join(self.output_dir, f"homopoly_{mol_id}_chain_{self.polymer_chain_size}.xyz")
+                    
+            xyz_filename = os.path.join(self.output_dir, f"homopoly_{mol_id}_chain_{self.polymer_chain_size}")
             self.write_xyz_file(rdkit_polymer, xyz_filename)
+            self.write_pdb_file(rdkit_polymer, xyz_filename)
             return f"Saved homopolymer: {xyz_filename}"
         
         except Exception as e:
