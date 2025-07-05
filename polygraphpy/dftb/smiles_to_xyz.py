@@ -181,7 +181,7 @@ class PolymerXyzGenerator(XyzGeneratorBase):
                 topology_graph=stk.polymer.Linear(
                     building_blocks=(bb1, bb2),
                     repeating_unit='AB',
-                    num_repeating_units=4,
+                    num_repeating_units=self.polymer_chain_size,
                     optimizer=stk.MCHammer(
                         num_steps=4000,  # Increase steps for better optimization
                         target_bond_length=1.54,  # Target C-C single bond length (Å)
