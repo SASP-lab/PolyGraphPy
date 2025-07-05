@@ -15,25 +15,25 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False,
         with resources.path("polygraphpy.data", "reduced_dataset.csv") as csv_path:
             input_csv = str(csv_path)
     
-    if input_csv is None:
-        raise ValueError("input_csv must be provided unless use_example_data is True")
+    # if input_csv is None:
+    #     raise ValueError("input_csv must be provided unless use_example_data is True")
     
-    if is_polymer:
-        xyz_generator = PolymerXyzGenerator(input_csv, polymer_chain_size=polymer_chain_size)
-    else:
-        xyz_generator = MonomerXyzGenerator(input_csv)
-    xyz_results = xyz_generator.generate()
-    print(f"XYZ generation complete: {sum('Saved' in r for r in xyz_results)} files created")
+    # if is_polymer:
+    #     xyz_generator = PolymerXyzGenerator(input_csv, polymer_chain_size=polymer_chain_size)
+    # else:
+    #     xyz_generator = MonomerXyzGenerator(input_csv)
+    # xyz_results = xyz_generator.generate()
+    # print(f"XYZ generation complete: {sum('Saved' in r for r in xyz_results)} files created")
     
-    # Step 2: Generate DFTB+ input files
-    input_generator = DFTBInputGenerator()
-    xyz_files = [os.path.join('polygraphpy/data/xyz_files', f) for f in os.listdir('polygraphpy/data/xyz_files') if f.endswith('.xyz')]
-    input_results = [input_generator.prepare_input(xyz_file) for xyz_file in xyz_files]
-    print(f"Input generation complete: {sum(input_results)} inputs created")
+    # # Step 2: Generate DFTB+ input files
+    # input_generator = DFTBInputGenerator()
+    # xyz_files = [os.path.join('polygraphpy/data/xyz_files', f) for f in os.listdir('polygraphpy/data/xyz_files') if f.endswith('.xyz')]
+    # input_results = [input_generator.prepare_input(xyz_file) for xyz_file in xyz_files]
+    # print(f"Input generation complete: {sum(input_results)} inputs created")
     
-    # Step 3: Run DFTB+ simulations
-    simulation = DFTBSimulation(dftbplus_path=dftbplus_path)
-    simulation.run()
+    # # Step 3: Run DFTB+ simulations
+    # simulation = DFTBSimulation(dftbplus_path=dftbplus_path)
+    # simulation.run()
     
     # Step 4: Compute polarizability traces
     trace_processor = PolarizabilityTrace()
