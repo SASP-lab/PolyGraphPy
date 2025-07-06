@@ -182,7 +182,7 @@ cython_debug/
 
 molecules/
 xyz_files/
-.DS_Store/
 training_input_data/
 validation_data/
 experiments/
+.DS_Store
