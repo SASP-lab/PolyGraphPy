@@ -68,7 +68,7 @@ class MonomerXyzGenerator(XyzGeneratorBase):
                 logging.error(f"Embedding failed for ID {mol_id} with SMILES {sml}")
                 return f"Skipping ID {mol_id}: Embedding failed"
             
-            xyz_filename = os.path.join(self.output_dir, f"monomer_{mol_id}.xyz")
+            xyz_filename = os.path.join(self.output_dir, f"monomer_{mol_id}")
             self.write_xyz_file(m_h, xyz_filename)
             return f"Saved monomer: {xyz_filename}"
         
