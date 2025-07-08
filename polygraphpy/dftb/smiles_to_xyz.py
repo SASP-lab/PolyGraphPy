@@ -35,7 +35,7 @@ class XyzGeneratorBase:
                 symbol = atom.GetSymbol()
                 f.write(f"{symbol} {pos.x:.6f} {pos.y:.6f} {pos.z:.6f}\n")
     
-    def write_pdb_file(mol: Chem.Mol, filename: str) -> None:
+    def write_pdb_file(self, mol: Chem.Mol, filename: str) -> None:
         """Write RDKit molecule to .pdb file."""
         AllChem.MolToPDBFile(mol, filename+'.pdb')
 
