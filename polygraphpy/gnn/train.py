@@ -106,13 +106,12 @@ class Train():
         print(f'Saving validation data.')
 
         for graph in tqdm(val_dataset):
-            torch.save(graph, f'{self.validation_data_path}/{graph.mol_id.detach().numpy()}.pt')
+            torch.save(graph, f'{self.validation_data_path}/{int(graph.mol_id.detach().numpy()[0])}_{int(graph.chain_size.detach().numpy()[0])}.pt')
 
     def save_training_statistics(self, df: pd.DataFrame):
-        df.to_csv(f'{self.gnn_output_path}/training_statics.csv', index=False)
+        df.to_csv(f'{self.gnn_output_path}/training_statistics.csv', index=False)
     
     def run(self):
-
         df_train_statistics = pd.DataFrame()
 
         train_dataset, val_dataset = self.create_train_and_validation_dataset()
@@ -126,7 +125,7 @@ class Train():
 
             print(f'Epoch: {epoch}, Train Loss: {loss:.5f}, Val Error: {val_loss:.5f}')
 
-            df_train_statistics = pd.concat(df_train_statistics, pd.DataFrame({'epoch': epoch, 'train_loss': loss, 'val_loss': val_loss}, index=[0]))
+            df_train_statistics = pd.concat([df_train_statistics, pd.DataFrame({'epoch': epoch, 'train_loss': loss, 'val_loss': val_loss}, index=[0])])
 
         self.save_validation_data(val_dataset)
         self.save_training_statistics(df_train_statistics)
