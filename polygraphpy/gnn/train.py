@@ -12,7 +12,7 @@ class Train():
                  train_input_data_path: str = None, gnn_output_path: str = None, validation_data_path: str = None) -> None:
         self.training_dataset = []
         self.input_dim = 0
-        self.min_val_error = 10e6
+        self.min_val_error = 10e9
         self.train_input_data_path = train_input_data_path
         self.gnn_output_path = gnn_output_path
         self.validation_data_path = validation_data_path
@@ -20,9 +20,13 @@ class Train():
         self.learning_rate = learning_rate
         self.epochs = epochs
 
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
+        print(f'Device: {self.device}')
+
         self.read_train_data(data)
 
-        self.training_model = GCN(self.input_dim, conv_hidden_channels, mlp_hidden_channels)
+        self.training_model = GCN(self.input_dim, self.input_dim, self.input_dim)
+        self.training_model = self.training_model.to(self.device)
 
         print('Model architecture:')
         print(self.training_model)
@@ -68,39 +72,43 @@ class Train():
 
     def train_model(self, train_loader: DataLoader):
         self.training_model.train()
-        k = 0
-        error = 0
+        total_loss = 0
+        total_samples = 0
 
         for data in train_loader:
+            data = data.to(self.device)
             self.optimizer.zero_grad()
             out = self.training_model(data.x, data.edge_index, data.edge_weight, data.batch, data.chain_size)
             loss = self.criterion(out.reshape(len(out)), data.y)
             loss.backward()
             self.optimizer.step()
-            error = error + loss.item()
-            k+=1
-        error = error/k
+            batch_size = data.y.size(0)  # Number of samples in the batch
+            total_loss += loss.item() * batch_size  # Weight loss by batch size
+            total_samples += batch_size
 
-        return error
+        return total_loss / total_samples if total_samples > 0 else 0
 
     def model_validation(self, val_loader: DataLoader, epoch: int):
         self.training_model.eval()
-        k = 0
-        error = 0
+        total_loss = 0
+        total_samples = 0
 
         for data in val_loader:
+            data = data.to(self.device)
             out = self.training_model(data.x, data.edge_index, data.edge_weight, data.batch, data.chain_size)
             loss = self.criterion(out.reshape(len(out)), data.y)
-            error = error + loss.item()
-            k+=1
-        error = error/k
+            batch_size = data.y.size(0)  # Number of samples in the batch
+            total_loss += loss.item() * batch_size  # Weight loss by batch size
+            total_samples += batch_size
 
-        if (error < self.min_val_error):
-            print(f'Model updated with best result: Val loss = {error:.5f} at epoch = {epoch}')
+        avg_loss = total_loss / total_samples if total_samples > 0 else 0
+
+        if avg_loss < self.min_val_error:
+            print(f'Model updated with best result: Val loss = {avg_loss:.5f} at epoch = {epoch}')
             torch.save(self.training_model, f'{self.gnn_output_path}/model_gcn.pt')
-            self.min_val_error = error
+            self.min_val_error = avg_loss
         
-        return error
+        return avg_loss
     
     def save_validation_data(self, val_dataset: list):
         print(f'Saving validation data.')
