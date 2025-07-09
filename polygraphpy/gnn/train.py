@@ -20,7 +20,7 @@ class Train():
         self.learning_rate = learning_rate
         self.epochs = epochs
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Device: {self.device}')
 
         self.read_train_data(data)

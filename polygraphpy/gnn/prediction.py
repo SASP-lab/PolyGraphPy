@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import os
 import torch
-import torch
 import math
 import matplotlib.pyplot as plt
 
@@ -13,6 +12,9 @@ from polygraphpy.gnn.models.gcn import GCN
 
 class Prediction():
     def __init__(self, validation_data_path: str, gnn_output_path: str) -> None:
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        print(f'Using device: {self.device}')
+
         self.validation_data = os.listdir(validation_data_path)
         self.gnn_output_path = gnn_output_path
         self.val_dataset = []
@@ -24,7 +26,8 @@ class Prediction():
                             self.model_hyperparameters['mlp_hidden_channels'].values[0])
 
         print(self.model)
-        self.model = torch.load(f'{gnn_output_path}/model_gcn.pt', weights_only=False)
+        self.model = torch.load(f'{gnn_output_path}/model_gcn.pt', weights_only=False, map_location=self.device)
+        self.model.to(self.device)
         self.model.eval()
 
         print(f'Reading validation data.')
@@ -58,8 +61,9 @@ class Prediction():
         print('Making prediction.')
         for graph in tqdm(self.val_dataset):
             y.append(graph.y.numpy()[0])
-            out = self.model(graph.x, graph.edge_index, graph.edge_weight, torch.tensor(np.array([0])), graph.chain_size)
-            pred.append(out.detach().numpy()[0][0])
+            graph = graph.to(self.device)  # Move graph data to device
+            out = self.model(graph.x, graph.edge_index, graph.edge_weight, torch.tensor(np.array([0])).to(self.device), graph.chain_size)
+            pred.append(out.detach().cpu().numpy()[0][0])  # Move output to CPU for numpy conversion
         
         df_result = pd.DataFrame({'y': y, 'pred': pred})
         df_result = df_result.sort_values(by='y').reset_index(drop=True)
