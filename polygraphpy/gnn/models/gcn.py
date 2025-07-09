@@ -23,11 +23,11 @@ class GCN(torch.nn.Module):
     
     def forward(self, x, edge_index, edge_weight, batch, chain_size):
         h = self.conv1(x, edge_index=edge_index, edge_weight=edge_weight)
-        h = h.tanh()
+        h = h.relu()
         h = self.conv2(h, edge_index=edge_index, edge_weight=edge_weight)
-        h = h.tanh()
+        h = h.relu()
         h = self.conv3(h, edge_index=edge_index, edge_weight=edge_weight)
-        h = h.tanh()
+        h = h.relu()
 
         h = global_mean_pool(h, batch)
 
@@ -35,7 +35,7 @@ class GCN(torch.nn.Module):
         h = torch.cat([h, chain_size], dim=1)  # shape: [2, 121]
 
         h = self.lin1(h)
-        h = h.tanh()
+        h = h.relu()
 
         h = self.output(h)
 
