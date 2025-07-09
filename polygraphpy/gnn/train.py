@@ -39,7 +39,7 @@ class Train():
     def read_train_data(self, data: pd.DataFrame) -> None:
         print(f'Reading training data.')
         for row in tqdm(data.itertuples()):
-            self.training_dataset.append(torch.load(f'{self.train_input_data_path}/{row.id}.pt', weights_only=False))
+            self.training_dataset.append(torch.load(f'{self.train_input_data_path}/{row.id}_{row.chain_size}.pt', weights_only=False))
         
         self.input_dim = self.training_dataset[0].x.shape[1]
 
@@ -73,7 +73,7 @@ class Train():
 
         for data in train_loader:
             self.optimizer.zero_grad()
-            out = self.training_model(data.x, data.edge_index, data.edge_weight, data.batch)
+            out = self.training_model(data.x, data.edge_index, data.edge_weight, data.batch, data.chain_size)
             loss = self.criterion(out.reshape(len(out)), data.y)
             loss.backward()
             self.optimizer.step()
@@ -89,7 +89,7 @@ class Train():
         error = 0
 
         for data in val_loader:
-            out = self.training_model(data.x, data.edge_index, data.edge_weight, data.batch)
+            out = self.training_model(data.x, data.edge_index, data.edge_weight, data.batch, data.chain_size)
             loss = self.criterion(out.reshape(len(out)), data.y)
             error = error + loss.item()
             k+=1
@@ -105,14 +105,18 @@ class Train():
     def save_validation_data(self, val_dataset: list):
         print(f'Saving validation data.')
 
-        i = 0
         for graph in tqdm(val_dataset):
-            torch.save(graph, f'{self.validation_data_path}/{graph.mol_id}.pt')
-            i+=1
+            torch.save(graph, f'{self.validation_data_path}/{graph.mol_id.detach().numpy()}.pt')
+
+    def save_training_statistics(self, df: pd.DataFrame):
+        df.to_csv(f'{self.gnn_output_path}/training_statics.csv', index=False)
     
     def run(self):
-        train_dataset, val_dataset = self.create_train_and_validation_dataset()
 
+        df_train_statistics = pd.DataFrame()
+
+        train_dataset, val_dataset = self.create_train_and_validation_dataset()
+        
         train_loader, val_loader = self.create_batches(train_dataset, val_dataset, self.batch_size)
 
         print(f'Starting training and validation with epochs = {self.epochs} and learning rate = {self.learning_rate}.')
@@ -122,6 +126,9 @@ class Train():
 
             print(f'Epoch: {epoch}, Train Loss: {loss:.5f}, Val Error: {val_loss:.5f}')
 
+            df_train_statistics = pd.concat(df_train_statistics, pd.DataFrame({'epoch': epoch, 'train_loss': loss, 'val_loss': val_loss}, index=[0]))
+
         self.save_validation_data(val_dataset)
+        self.save_training_statistics(df_train_statistics)
         
         print(f'Train finished.')
