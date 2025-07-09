@@ -186,3 +186,5 @@ training_input_data/
 validation_data/
 experiments/
 .DS_Store
+polygraphpy/data/count_files.py
+polygraphpy/data/45k_xyz_incomplete_simulation.zip
