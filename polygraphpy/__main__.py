@@ -28,24 +28,24 @@ def main(input_csv, polymer, dftbplus_path, use_example_data, polymer_chain_size
     if input_csv and use_example_data:
         raise click.UsageError("Cannot use --input-csv with --use-example-data")
     
-    run_dftb_pipeline(
-        input_csv=input_csv,
-        is_polymer=polymer,
-        dftbplus_path=dftbplus_path,
-        use_example_data=use_example_data,
-        polymer_chain_size=polymer_chain_size
-    )
-
-    # run_gnn_pipeline(
-    #     input_csv=input_csv.split('/')[0] + '/' + input_csv.split('/')[1] + '/polarizability_data.csv',
-    #     batch_size=batch_size,
-    #     learning_rate=learning_rate,
-    #     number_conv_channels=number_conv_channels,
-    #     number_fc_channels=number_fc_channels,
-    #     prediction_target=prediction_target,
-    #     polymer_type=polymer_type,
-    #     epochs=epochs
+    # run_dftb_pipeline(
+    #     input_csv=input_csv,
+    #     is_polymer=polymer,
+    #     dftbplus_path=dftbplus_path,
+    #     use_example_data=use_example_data,
+    #     polymer_chain_size=polymer_chain_size
     # )
+
+    run_gnn_pipeline(
+        input_csv=input_csv.split('/')[0] + '/' + input_csv.split('/')[1] + '/polarizability_data.csv',
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        number_conv_channels=number_conv_channels,
+        number_fc_channels=number_fc_channels,
+        prediction_target=prediction_target,
+        polymer_type=polymer_type,
+        epochs=epochs
+    )
 
 if __name__ == '__main__':
     main()
