@@ -6,6 +6,7 @@ from polygraphpy.dftb.dftb_simulation import DFTBSimulation
 from polygraphpy.dftb.polarizability_trace import PolarizabilityTrace
 from polygraphpy.gnn.pre_processing import PreProcess
 from polygraphpy.gnn.train import Train
+from polygraphpy.gnn.prediction import Prediction
 
 def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, 
                       dftbplus_path: str = None, use_example_data: bool = False, polymer_chain_size: int = 2):
@@ -44,12 +45,11 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False,
 def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', batch_size: int = 8, learning_rate: float = 1e-3, number_conv_channels: int = 120, 
                      number_fc_channels: int = 120, prediction_target: str = None, polymer_type: str = 'monomer', epochs: int = 200,
                      train_input_data_path: str = 'polygraphpy/data/training_input_data/', gnn_output_path: str = 'polygraphpy/data/gnn_output/',
-                     validation_data_path: str ='polygraphpy/data/validation_data/', trained_models_path = 'polygraphpy/data/models/'):
+                     validation_data_path: str ='polygraphpy/data/validation_data/'):
     
     os.makedirs(train_input_data_path, exist_ok=True)
     os.makedirs(gnn_output_path, exist_ok=True)
     os.makedirs(validation_data_path, exist_ok=True)
-    os.makedirs(trained_models_path, exist_ok=True)
 
     # Step 1: Pre processing data
     pre_process_engine = PreProcess(input_csv=input_csv, train_input_data_path=train_input_data_path, polymer_type=polymer_type, target=prediction_target)
@@ -59,3 +59,6 @@ def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', 
     train_engine = Train(number_conv_channels, number_fc_channels, data, learning_rate, batch_size, epochs, train_input_data_path, gnn_output_path,
                          validation_data_path)
     train_engine.run()
+
+    # Step 3: Plot validation result and save dataframes
+    prediction_engine = Prediction()
