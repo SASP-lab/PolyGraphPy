@@ -42,8 +42,8 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False,
     print(f"Trace computation complete: {len(trace_results)} traces computed")
     return trace_results
 
-def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', batch_size: int = 8, learning_rate: float = 1e-3, number_conv_channels: int = 120, 
-                     number_fc_channels: int = 120, prediction_target: str = None, polymer_type: str = 'monomer', epochs: int = 200,
+def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', batch_size: int = 8, learning_rate: float = 1e-3, number_conv_channels: int = 69, 
+                     number_fc_channels: int = 69, prediction_target: str = None, polymer_type: str = 'monomer', epochs: int = 200,
                      train_input_data_path: str = 'polygraphpy/data/training_input_data/', gnn_output_path: str = 'polygraphpy/data/gnn_output/',
                      validation_data_path: str ='polygraphpy/data/validation_data/'):
     
