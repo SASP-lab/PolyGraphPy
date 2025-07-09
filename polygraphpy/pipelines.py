@@ -61,4 +61,5 @@ def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', 
     train_engine.run()
 
     # Step 3: Plot validation result and save dataframes
-    prediction_engine = Prediction()
+    prediction_engine = Prediction(validation_data_path, gnn_output_path)
+    prediction_engine.run()
