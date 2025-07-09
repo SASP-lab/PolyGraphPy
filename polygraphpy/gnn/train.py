@@ -39,7 +39,7 @@ class Train():
     def read_train_data(self, data: pd.DataFrame) -> None:
         print(f'Reading training data.')
         for row in tqdm(data.itertuples()):
-            self.training_dataset.append(torch.load(f'{self.train_input_data_path}/{row.id}.pt'))
+            self.training_dataset.append(torch.load(f'{self.train_input_data_path}/{row.id}.pt', weights_only=False))
         
         self.input_dim = self.training_dataset[0].x.shape[1]
 
