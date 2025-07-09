@@ -72,11 +72,20 @@ class PolarizabilityTrace(Simulator):
                     if trace is not None:
                         self.write_trace_file(subfolder_path, xx, yy, zz, trace)
                         rel_path = os.path.relpath(file_path, root_folder)
-                        # Extract chain_size from subfolder name
+                        # Extract chain_size and id from subfolder name
                         folder_name = os.path.basename(subfolder_path)
-                        chain_size_match = pd.Series([folder_name]).str.extract(r'homopoly_\d+_chain_(\d+)')
-                        chain_size = int(chain_size_match[0][0]) if not chain_size_match.empty else None
-                        results.append((rel_path, xx, yy, zz, trace, chain_size))
+                        chain_size = None
+                        mol_id = None
+                        if folder_name.startswith('homopoly_'):
+                            chain_size_match = pd.Series([folder_name]).str.extract(r'homopoly_\d+_chain_(\d+)')
+                            chain_size = int(chain_size_match[0][0]) if not chain_size_match.empty else None
+                            id_match = pd.Series([folder_name]).str.extract(r'homopoly_(\d+)_chain_\d+')
+                            mol_id = int(id_match[0][0]) if not id_match.empty else None
+                        elif folder_name.startswith('monomer_'):
+                            chain_size = 1
+                            id_match = pd.Series([folder_name]).str.extract(r'monomer_(\d+)')
+                            mol_id = int(id_match[0][0]) if not id_match.empty else None
+                        results.append((rel_path, xx, yy, zz, trace, chain_size, mol_id))
         return results
     
     def run(self, input_csv: str) -> list:
@@ -99,9 +108,7 @@ class PolarizabilityTrace(Simulator):
             return []
 
         # Create polarizability dataset
-        df_polarizability = pd.DataFrame(trace_results, columns=['id', 'xx', 'yy', 'zz', 'trace', 'chain_size'])
-        # Extract id from homopoly paths
-        df_polarizability['id'] = df_polarizability['id'].str.extract(r'homopoly_(\d+)_chain_\d+/')
+        df_polarizability = pd.DataFrame(trace_results, columns=['file_path', 'xx', 'yy', 'zz', 'static_polarizability', 'chain_size', 'id'])
         # Filter out rows where id or chain_size could not be extracted
         df_polarizability = df_polarizability.dropna(subset=['id', 'chain_size'])
         if df_polarizability.empty:
@@ -111,7 +118,7 @@ class PolarizabilityTrace(Simulator):
         df_polarizability['chain_size'] = df_polarizability['chain_size'].astype(int)
         df_polarizability = df_polarizability.merge(pd.read_csv(input_csv), on=['id'], how='left')
 
-        desired_columns = ['id', 'poly', 'chain_size', 'xx', 'yy', 'zz', 'trace', 'name', 'smiles']
+        desired_columns = ['id', 'poly', 'name', 'smiles', 'chain_size', 'xx', 'yy', 'zz', 'static_polarizability']
         available_columns = [col for col in desired_columns if col in df_polarizability.columns]
         df_polarizability = df_polarizability[available_columns]
 
