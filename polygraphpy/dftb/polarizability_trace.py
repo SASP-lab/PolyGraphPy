@@ -82,7 +82,7 @@ class PolarizabilityTrace(Simulator):
                             id_match = pd.Series([folder_name]).str.extract(r'homopoly_(\d+)_chain_\d+')
                             mol_id = int(id_match[0][0]) if not id_match.empty else None
                         elif folder_name.startswith('monomer_'):
-                            chain_size = 1
+                            chain_size = 0
                             id_match = pd.Series([folder_name]).str.extract(r'monomer_(\d+)')
                             mol_id = int(id_match[0][0]) if not id_match.empty else None
                         results.append((rel_path, xx, yy, zz, trace, chain_size, mol_id))
