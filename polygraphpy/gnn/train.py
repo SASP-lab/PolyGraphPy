@@ -25,7 +25,7 @@ class Train():
 
         self.read_train_data(data)
 
-        self.training_model = GCN(self.input_dim, self.input_dim, self.input_dim)
+        self.training_model = GCN(self.input_dim, conv_hidden_channels, mlp_hidden_channels)
         self.training_model = self.training_model.to(self.device)
 
         print('Model architecture:')
