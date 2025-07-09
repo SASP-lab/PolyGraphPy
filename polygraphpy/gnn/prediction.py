@@ -21,12 +21,8 @@ class Prediction():
         self.model_hyperparameters = pd.read_csv(f'{gnn_output_path}/gcn_hyperparameters.csv')
 
         print(f'Loading trained model.')
-        self.model = GCN(self.model_hyperparameters['input_dim'].values[0], 
-                            self.model_hyperparameters['conv_hidden_channels'].values[0], 
-                            self.model_hyperparameters['mlp_hidden_channels'].values[0])
-
-        print(self.model)
         self.model = torch.load(f'{gnn_output_path}/model_gcn.pt', weights_only=False, map_location=self.device)
+        print(self.model)
         self.model.to(self.device)
         self.model.eval()
 
