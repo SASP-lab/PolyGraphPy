@@ -123,6 +123,7 @@ class Train():
         df_train_statistics = pd.DataFrame()
 
         train_dataset, val_dataset = self.create_train_and_validation_dataset()
+        self.save_validation_data(val_dataset)
         
         train_loader, val_loader = self.create_batches(train_dataset, val_dataset, self.batch_size)
 
@@ -135,7 +136,6 @@ class Train():
 
             df_train_statistics = pd.concat([df_train_statistics, pd.DataFrame({'epoch': epoch, 'train_loss': loss, 'val_loss': val_loss}, index=[0])])
 
-        self.save_validation_data(val_dataset)
         self.save_training_statistics(df_train_statistics)
         
         print(f'Train finished.')
