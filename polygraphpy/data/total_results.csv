@@ -1,0 +1,2 @@
+input_dim,conv_hidden_channels,mlp_hidden_channels,mape,r2,mse,act_func,mlp_layers
+57,100,100,22.81437,0.72196,0.0116,tanh,3
