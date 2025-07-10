@@ -8,8 +8,6 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from sklearn.metrics import mean_absolute_percentage_error, r2_score, mean_squared_error
 
-from polygraphpy.gnn.models.gcn import GCN
-
 class Prediction():
     def __init__(self, validation_data_path: str, gnn_output_path: str) -> None:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -18,7 +16,6 @@ class Prediction():
         self.validation_data = os.listdir(validation_data_path)
         self.gnn_output_path = gnn_output_path
         self.val_dataset = []
-        self.model_hyperparameters = pd.read_csv(f'{gnn_output_path}/gcn_hyperparameters.csv')
 
         print(f'Loading trained model.')
         self.model = torch.load(f'{gnn_output_path}/model_gcn.pt', weights_only=False, map_location=self.device)
@@ -58,7 +55,7 @@ class Prediction():
         for graph in tqdm(self.val_dataset):
             y.append(graph.y.numpy()[0])
             graph = graph.to(self.device)  # Move graph data to device
-            out = self.model(graph.x, graph.edge_index, graph.edge_weight, torch.tensor(np.array([0])).to(self.device), graph.chain_size)
+            out = self.model(graph.x, graph.edge_index, graph.edge_weight, torch.tensor(np.array([0])).to(self.device))
             pred.append(out.detach().cpu().numpy()[0][0])  # Move output to CPU for numpy conversion
         
         df_result = pd.DataFrame({'y': y, 'pred': pred})
