@@ -43,7 +43,7 @@ class Train():
     def read_train_data(self, data: pd.DataFrame) -> None:
         print(f'Reading training data.')
         for row in tqdm(data.itertuples()):
-            self.training_dataset.append(torch.load(f'{self.train_input_data_path}/{row.id}_{row.chain_size}.pt', weights_only=False))
+            self.training_dataset.append(torch.load(f'{self.train_input_data_path}/{row.id}.pt', weights_only=False))
         
         self.input_dim = self.training_dataset[0].x.shape[1]
 
@@ -78,7 +78,7 @@ class Train():
         for data in train_loader:
             data = data.to(self.device)
             self.optimizer.zero_grad()
-            out = self.training_model(data.x, data.edge_index, data.edge_weight, data.batch, data.chain_size)
+            out = self.training_model(data.x, data.edge_index, data.edge_weight, data.batch)
             loss = self.criterion(out.reshape(len(out)), data.y)
             loss.backward()
             self.optimizer.step()
@@ -95,7 +95,7 @@ class Train():
 
         for data in val_loader:
             data = data.to(self.device)
-            out = self.training_model(data.x, data.edge_index, data.edge_weight, data.batch, data.chain_size)
+            out = self.training_model(data.x, data.edge_index, data.edge_weight, data.batch)
             loss = self.criterion(out.reshape(len(out)), data.y)
             batch_size = data.y.size(0)  # Number of samples in the batch
             total_loss += loss.item() * batch_size  # Weight loss by batch size
@@ -114,7 +114,7 @@ class Train():
         print(f'Saving validation data.')
 
         for graph in tqdm(val_dataset):
-            torch.save(graph, f'{self.validation_data_path}/{int(graph.mol_id.detach().numpy()[0])}_{int(graph.chain_size.detach().numpy()[0])}.pt')
+            torch.save(graph, f'{self.validation_data_path}/{int(graph.mol_id.detach().numpy()[0])}.pt')
 
     def save_training_statistics(self, df: pd.DataFrame):
         df.to_csv(f'{self.gnn_output_path}/training_statistics.csv', index=False)
