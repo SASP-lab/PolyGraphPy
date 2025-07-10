@@ -18,6 +18,8 @@ class GCN(torch.nn.Module):
         self.conv3 = GCNConv(conv_hidden_channels, conv_hidden_channels, normalize=True)
 
         self.lin1 = Linear(conv_hidden_channels, mlp_hidden_channels)
+        self.lin2 = Linear(conv_hidden_channels, mlp_hidden_channels)
+        self.lin3 = Linear(conv_hidden_channels, mlp_hidden_channels)
 
         self.output = Linear(mlp_hidden_channels, 1)
     
@@ -34,6 +36,12 @@ class GCN(torch.nn.Module):
         h = global_mean_pool(h, batch)
 
         h = self.lin1(h)
+        h = F.dropout(h)
+        h = h.tanh()
+        h = self.lin2(h)
+        h = F.dropout(h)
+        h = h.tanh()
+        h = self.lin3(h)
         h = h.tanh()
 
         h = self.output(h)
