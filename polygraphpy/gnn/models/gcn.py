@@ -24,23 +24,17 @@ class GCN(torch.nn.Module):
     def forward(self, x, edge_index, edge_weight, batch, chain_size=None):
         h = self.conv1(x, edge_index=edge_index, edge_weight=edge_weight)
         h = F.dropout(h)
-        h = h.relu()
+        h = h.tanh()
         h = self.conv2(h, edge_index=edge_index, edge_weight=edge_weight)
         h = F.dropout(h)
-        h = h.relu()
+        h = h.tanh()
         h = self.conv3(h, edge_index=edge_index, edge_weight=edge_weight)
-        h = h.relu()
+        h = h.tanh()
 
         h = global_mean_pool(h, batch)
 
         h = self.lin1(h)
-        h = F.dropout(h)
-        h = h.relu()
-        h = self.lin1(h)
-        h = F.dropout(h)
-        h = h.relu()
-        h = self.lin1(h)
-        h = h.relu()
+        h = h.tanh()
 
         h = self.output(h)
 
