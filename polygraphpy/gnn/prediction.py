@@ -48,14 +48,15 @@ class Prediction():
         fig.savefig(f"{self.gnn_output_path}/pred.pdf", bbox_inches='tight')
 
     def run(self) -> None:
-        pred, y = [], []
+        pred = []
+        y = []
+
         print('Making prediction.')
-        with torch.no_grad():
-            for graph in tqdm(self.val_dataset):
-                y.append(graph.y.numpy()[0])
-                graph = graph.to(self.device)
-                out = self.model(graph.x, graph.edge_index, graph.edge_weight, torch.tensor([0]).to(self.device))
-                pred.append(out.detach().cpu().numpy()[0][0])
+        for graph in tqdm(self.val_dataset):
+            y.append(graph.y.numpy()[0])
+            graph = graph.to(self.device)
+            out = self.model(graph.x, graph.edge_index, graph.edge_weight, torch.tensor(np.array([0])).to(self.device))
+            pred.append(out.detach().cpu().numpy()[0][0])
             
         df_result = pd.DataFrame({'y': y, 'pred': pred})
         df_result = df_result.sort_values(by='y').reset_index(drop=True)
