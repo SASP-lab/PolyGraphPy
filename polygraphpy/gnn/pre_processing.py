@@ -124,12 +124,11 @@ class PreProcess():
             
             y = torch.Tensor([row.__getattribute__(self.target)])
             mol_id = torch.Tensor([row.id])
-            chain_size = torch.Tensor([row.chain_size])
             
-            mol_data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, edge_weight=edge_weight, mol_id=mol_id, chain_size=chain_size)
+            mol_data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, edge_weight=edge_weight, mol_id=mol_id)
             mol_data.validate()
             
-            torch.save(mol_data, f'{self.train_input_data_path}/{row.id}_{row.chain_size}.pt')
+            torch.save(mol_data, f'{self.train_input_data_path}/{row.id}.pt')
     
         print(f'Training data preparation finished.')
 
