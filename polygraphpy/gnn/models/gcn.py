@@ -17,23 +17,28 @@ class GCN(torch.nn.Module):
         self.conv2 = GCNConv(conv_hidden_channels, conv_hidden_channels, normalize=True)
         self.conv3 = GCNConv(conv_hidden_channels, conv_hidden_channels, normalize=True)
 
-        self.lin1 = Linear(conv_hidden_channels+1, mlp_hidden_channels) #adding the chain size to the embbeding
+        self.lin1 = Linear(conv_hidden_channels, mlp_hidden_channels)
 
         self.output = Linear(mlp_hidden_channels, 1)
     
-    def forward(self, x, edge_index, edge_weight, batch, chain_size):
+    def forward(self, x, edge_index, edge_weight, batch, chain_size=None):
         h = self.conv1(x, edge_index=edge_index, edge_weight=edge_weight)
+        h = F.dropout(h)
         h = h.relu()
         h = self.conv2(h, edge_index=edge_index, edge_weight=edge_weight)
+        h = F.dropout(h)
         h = h.relu()
         h = self.conv3(h, edge_index=edge_index, edge_weight=edge_weight)
         h = h.relu()
 
         h = global_mean_pool(h, batch)
 
-        chain_size = chain_size.unsqueeze(1)    # shape: [2, 1]
-        h = torch.cat([h, chain_size], dim=1)  # shape: [2, 121]
-
+        h = self.lin1(h)
+        h = F.dropout(h)
+        h = h.relu()
+        h = self.lin1(h)
+        h = F.dropout(h)
+        h = h.relu()
         h = self.lin1(h)
         h = h.relu()
 
