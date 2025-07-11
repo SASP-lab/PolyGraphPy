@@ -43,7 +43,7 @@ class Train():
     def read_train_data(self, data: pd.DataFrame) -> None:
         print(f'Reading training data.')
         for row in tqdm(data.itertuples()):
-            self.training_dataset.append(torch.load(f'{self.train_input_data_path}/{row.id}.pt', weights_only=False))
+            self.training_dataset.append(torch.load(f'{self.train_input_data_path}/{row.id}_{row.chain_size}.pt', weights_only=False))
         
         self.input_dim = self.training_dataset[0].x.shape[1]
 
@@ -114,7 +114,7 @@ class Train():
         print(f'Saving validation data.')
 
         for graph in tqdm(val_dataset):
-            torch.save(graph, f'{self.validation_data_path}/{int(graph.mol_id.detach().numpy()[0])}.pt')
+            torch.save(graph, f'{self.validation_data_path}/{int(graph.mol_id.detach().numpy()[0])}_{int(graph.chain_size.detach().numpy()[0])}.pt')
 
     def save_training_statistics(self, df: pd.DataFrame):
         df.to_csv(f'{self.gnn_output_path}/training_statistics.csv', index=False)
