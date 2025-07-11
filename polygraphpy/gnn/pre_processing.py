@@ -21,8 +21,11 @@ class PreProcess():
         print("Extracting unique features from atoms and bonds.")
 
         smiles_vec = self.df['smiles'].to_list()
+        chain_vec = self.df['chain_size'].to_list()
         atoms_list = []
         bonds_list = []
+
+        i = 0
 
         for smiles in tqdm(smiles_vec):
             m = Chem.MolFromSmiles(smiles)
@@ -40,7 +43,10 @@ class PreProcess():
                     'aromatic': int(atom.GetIsAromatic()),
                     'n_Hs': atom.GetTotalNumHs(),
                     'formal_charge': atom.GetFormalCharge(),
+                    'chain_size': chain_vec[i]
                 })
+            
+            i = i + 1
 
             for bond in m.GetBonds():
                 bonds_list.append({
@@ -60,7 +66,7 @@ class PreProcess():
 
         return encoder
     
-    def get_nodes_information(self, molecule: Chem.rdchem.Mol, atoms: list) -> list:
+    def get_nodes_information(self, molecule: Chem.rdchem.Mol, atoms: list, chain_size: int) -> list:
         for atom in molecule.GetAtoms():
             symbol = atom.GetSymbol()
 
@@ -76,6 +82,7 @@ class PreProcess():
                     'aromatic': int(atom.GetIsAromatic()),
                     'n_Hs': atom.GetTotalNumHs(),
                     'formal_charge': atom.GetFormalCharge(),
+                    'chain_size': chain_size,
                 })
 
         return atoms
@@ -102,7 +109,7 @@ class PreProcess():
             m1 = Chem.MolFromSmiles(row.smiles)
             m1 = Chem.AddHs(m1)
             
-            atoms = self.get_nodes_information(m1, atoms)
+            atoms = self.get_nodes_information(m1, atoms, row.chain_size)
             
             df_nodes = pd.DataFrame(atoms)
             nodes_features = pd.DataFrame(atom_encoder.transform(df_nodes.drop(['idx'], axis=1)).toarray())
@@ -124,11 +131,12 @@ class PreProcess():
             
             y = torch.Tensor([row.__getattribute__(self.target)])
             mol_id = torch.Tensor([row.id])
+            chain_size = torch.Tensor([row.chain_size])
             
-            mol_data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, edge_weight=edge_weight, mol_id=mol_id)
+            mol_data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, edge_weight=edge_weight, mol_id=mol_id, chain_size=chain_size)
             mol_data.validate()
             
-            torch.save(mol_data, f'{self.train_input_data_path}/{row.id}.pt')
+            torch.save(mol_data, f'{self.train_input_data_path}/{row.id}_{row.chain_size}.pt')
     
         print(f'Training data preparation finished.')
 
