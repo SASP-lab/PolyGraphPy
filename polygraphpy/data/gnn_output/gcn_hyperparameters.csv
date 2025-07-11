@@ -1,2 +1,2 @@
 input_dim,conv_hidden_channels,mlp_hidden_channels
-57,100,100
+70,70,70
