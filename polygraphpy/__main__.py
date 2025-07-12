@@ -13,8 +13,8 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline
 #GNN parameters
 @click.option('--batch-size',  default=16, type=int, help='Training batch size.')
 @click.option('--learning-rate',  default=1e-3, type=float, help='Training learning rate.')
-@click.option('--number-conv-channels',  default=70, type=int, help='Number of hidden channels in the convolutional layers.')
-@click.option('--number-fc-channels',  default=70, type=int, help='Number of hidden channels in the MLP layer.')
+@click.option('--number-conv-channels',  default=225, type=int, help='Number of hidden channels in the convolutional layers.')
+@click.option('--number-fc-channels',  default=225, type=int, help='Number of hidden channels in the MLP layer.')
 @click.option('--prediction-target', help='Name of the target column from input data file.', required=True)
 @click.option('--polymer-type', default='monomer', help='Type of polymers in the input data.')
 @click.option("--epochs", default=200, type=int, help="Number of epochs to train the model.")
