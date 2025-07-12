@@ -3,7 +3,7 @@ import pandas as pd
 import torch
 from tqdm import tqdm
 from rdkit import Chem
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
 from torch_geometric.data import Data
 
 class PreProcess():
@@ -13,9 +13,26 @@ class PreProcess():
         self.train_input_data_path = train_input_data_path
         self.polymer_type = polymer_type
         self.target = target
+        self.scaler = MinMaxScaler()
 
         print('Reading GNN input file.')
         self.df = pd.read_csv(self.input_csv)
+
+    def remove_outliers(self):
+        Q1 = self.df[self.target].quantile(0.25)
+        Q3 = self.df[self.target].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        self.df = self.df[(self.df[self.target] >= lower_bound) & (self.df[self.target] <= upper_bound)].reset_index(drop=True)
+
+    def data_standardization(self):
+        self.df[self.target + '_original'] = self.df[self.target]
+        self.scaler = self.scaler.fit(self.df[[self.target]])
+        self.df[self.target] = self.scaler.transform(self.df[[self.target]])
+
+        # save the scaled data
+        self.df.to_csv(self.input_csv)
     
     def extract_atoms_and_bonds_features_from_monomer_smiles(self) -> tuple[list, list]:
         print("Extracting unique features from atoms and bonds.")
@@ -141,16 +158,19 @@ class PreProcess():
         print(f'Training data preparation finished.')
 
     def run(self):
+        print('Removing outliers...')
+        self.remove_outliers()
+        print('Making data standardization...')
+        self.data_standardization()
+
         if (len(os.listdir('polygraphpy/data/training_input_data/')) == len(self.df)):
             print(f'No training data preparation needed. Jumping to training.')
 
         else:
-            if (self.polymer_type == 'monomer'):
-                atoms_list, bonds_list = self.extract_atoms_and_bonds_features_from_monomer_smiles()
-
-                unique_atoms_features = pd.DataFrame(atoms_list).drop_duplicates().reset_index(drop=True)
-                unique_bonds_features = pd.DataFrame(bonds_list).drop_duplicates().reset_index(drop=True)
-                self.df['weights'] = 1
+            atoms_list, bonds_list = self.extract_atoms_and_bonds_features_from_monomer_smiles()
+            unique_atoms_features = pd.DataFrame(atoms_list).drop_duplicates().reset_index(drop=True)
+            unique_bonds_features = pd.DataFrame(bonds_list).drop_duplicates().reset_index(drop=True)
+            self.df['weights'] = 1
 
             atom_encoder = self.make_encoder(unique_atoms_features)
             bond_encoder = self.make_encoder(unique_bonds_features)
