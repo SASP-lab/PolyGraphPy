@@ -182,4 +182,11 @@ cython_debug/
 
 molecules/
 xyz_files/
+training_input_data/
+validation_data/
+training_input_data_temp/
+validation_data_temp/
+experiments/
 .DS_Store
+polygraphpy/data/count_files.py
+polygraphpy/data/45k_xyz_incomplete_simulation.zip

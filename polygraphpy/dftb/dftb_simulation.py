@@ -11,7 +11,7 @@ class DFTBSimulation(Simulator):
     """Run DFTB+ simulations for .xyz files."""
     
     def __init__(self, xyz_dir: str = 'polygraphpy/data/xyz_files', molecules_dir: str = 'polygraphpy/data/molecules',
-                 log_file: str = 'dftb_pipeline.log', processes: int = 8,
+                 log_file: str = 'dftb_pipeline.log', processes: int = 20,
                  dftbplus_path: str = None):
         """Initialize with directories, log file, number of processes, and optional DFTB+ path."""
         super().__init__()
@@ -22,6 +22,7 @@ class DFTBSimulation(Simulator):
         
         # Set OMP_NUM_THREADS environment variable
         os.environ['OMP_NUM_THREADS'] = '1'
+        os.environ['DFTBPLUS_PATH'] = dftbplus_path
         
         # Find and set DFTB+ executable path
         self.dftbplus_cmd = self._find_dftbplus(dftbplus_path)
@@ -29,15 +30,6 @@ class DFTBSimulation(Simulator):
     
     def _find_dftbplus(self, dftbplus_path: str = None) -> list:
         """Find DFTB+ executable, using provided path or searching system."""
-        # Check if user provided a path
-        if dftbplus_path and os.path.isfile(dftbplus_path):
-            try:
-                subprocess.run([dftbplus_path, "--version"], capture_output=True, check=True)
-                return [dftbplus_path]
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                with open(self.log_file, "a") as log:
-                    log.write(f"Error: Provided DFTB+ path {dftbplus_path} is invalid at {datetime.now()}\n")
-                raise ValueError(f"Invalid DFTB+ executable path: {dftbplus_path}")
         
         # Check DFTBPLUS_PATH environment variable
         env_path = os.environ.get("DFTBPLUS_PATH", None)
@@ -61,8 +53,6 @@ class DFTBSimulation(Simulator):
             job_dir = os.path.join(self.molecules_dir, base_name)
             hsd_file = os.path.join(job_dir, "dftb_in.hsd")
             job_log = os.path.join(job_dir, "process.log")
-
-            os.makedirs(job_dir, exist_ok=True) 
             
             if not os.path.exists(hsd_file):
                 with open(self.log_file, "a") as log:
@@ -90,8 +80,6 @@ class DFTBSimulation(Simulator):
                 log.write(f"Error: Failed to run DFTB+ for {xyz_file} at {datetime.now()}: {str(e)}\n")
             with open(job_log, "a") as log:
                 log.write(f"Error: Failed to run DFTB+ for {xyz_file} at {datetime.now()}: {str(e)}\n")
-        finally:
-            os.chdir(os.path.dirname(os.path.abspath(__file__)) or ".")
     
     def run(self) -> None:
         """Run DFTB+ simulations for all .xyz files in parallel."""

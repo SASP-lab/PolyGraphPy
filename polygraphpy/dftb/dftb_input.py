@@ -74,7 +74,7 @@ class DFTBInputGenerator(Simulator):
 
 Driver = GeometryOptimization {{
    Optimizer = Rational {{}}
-   MaxSteps = 10000
+   MaxSteps = 2000
    OutputPrefix = '{base_name}'
    Convergence {{ GradElem = 1E-4 }}
 }}
@@ -107,15 +107,6 @@ Analysis = {{
   Polarisability = {{
     Static = Yes
     }}
-}}
-
-ElectronDynamics = {{
-   Steps = 25000
-   TimeStep [au] = 0.1
-   Perturbation = Kick {{
-     PolarizationDirection = all
-   }}
-   FieldStrength [v/a] = 0.001
 }}
 
 ParserOptions {{
