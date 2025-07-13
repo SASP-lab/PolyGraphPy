@@ -55,11 +55,11 @@ def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', 
     pre_process_engine = PreProcess(input_csv=input_csv, train_input_data_path=train_input_data_path, polymer_type=polymer_type, target=prediction_target)
     data = pre_process_engine.run()
 
-    # # Step 2: Train GNN model for prediction
-    # train_engine = Train(number_conv_channels, number_fc_channels, data, learning_rate, batch_size, epochs, train_input_data_path, gnn_output_path,
-    #                      validation_data_path)
-    # train_engine.run()
+    # Step 2: Train GNN model for prediction
+    train_engine = Train(number_conv_channels, number_fc_channels, data, learning_rate, batch_size, epochs, train_input_data_path, gnn_output_path,
+                         validation_data_path)
+    train_engine.run()
 
-    # # Step 3: Plot validation result and save dataframes
-    # prediction_engine = Prediction(validation_data_path, gnn_output_path)
-    # prediction_engine.run()
+    # Step 3: Plot validation result and save dataframes
+    prediction_engine = Prediction(validation_data_path, gnn_output_path)
+    prediction_engine.run()

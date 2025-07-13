@@ -32,7 +32,7 @@ class PreProcess():
         self.df[self.target] = self.scaler.transform(self.df[[self.target]])
 
         # save the scaled data
-        self.df.to_csv(self.input_csv)
+        self.df.to_csv(self.input_csv, index=False)
     
     def extract_atoms_and_bonds_features_from_monomer_smiles(self) -> tuple[list, list]:
         print("Extracting unique features from atoms and bonds.")
