@@ -64,7 +64,7 @@ class DFTBSimulation(Simulator):
                 capture_output=True,
                 text=True,
                 cwd=job_dir,
-                timeout=6000
+                timeout=60000
             )
 
             if result.returncode == 0:
@@ -94,6 +94,7 @@ class DFTBSimulation(Simulator):
         with open(self.log_file, "a") as log:
             log.write(f"Found {len(xyz_files)} .xyz files to process at {datetime.now()}\n")
         
+        print('Running DFTB+.')
         with Pool(processes=self.processes) as pool:
             pool.map(self.process_xyz, xyz_files)
         
