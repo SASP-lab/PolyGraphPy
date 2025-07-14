@@ -89,9 +89,9 @@ class PolarizabilityTrace(Simulator):
                             mol_id_A = int(id_match[0][0]) if not id_match.empty else None
                             type = 'monomer'
                         else:
-                            chain_size_match = pd.Series([folder_name]).str.extract(r'copoly_\d+_\d+_(\d+)')
+                            chain_size_match = pd.Series([folder_name]).str.extract(r'copoly_\d+_\d+_chain_(\d+)')
                             chain_size = int(chain_size_match[0][0]) if not chain_size_match.empty else None
-                            id_match = pd.Series([folder_name]).str.extract(r'copoly_(\d+)_(\d+)_\d+')
+                            id_match = pd.Series([folder_name]).str.extract(r'copoly_(\d+)_(\d+)_chain_\d+')
                             mol_id_A = int(id_match[0][0]) if not id_match.empty else None
                             mol_id_B = int(id_match[1][0]) if not id_match.empty else None
                             type = 'copoly'
