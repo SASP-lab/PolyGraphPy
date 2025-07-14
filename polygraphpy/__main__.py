@@ -6,7 +6,7 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline
 #DFTB parameters
 @click.option('--run-dftb', is_flag=True, help='Run the DFTB+ to make simulate monomers and polymers.')
 @click.option('--input-csv', type=click.Path(exists=True), default='polygraphpy/data/full_dataset.csv', help='Path to input CSV file.')
-@click.option('--polymer', is_flag=True, help='Generate polymers instead of monomers.')
+@click.option('--is-polymer', is_flag=True, help='Generate polymers instead of monomers.')
 @click.option('--dftbplus-path', default=None, type=click.Path(), help='Path to DFTB+ executable.')
 @click.option('--use-example-data', is_flag=True, help='Use bundled example data (reduced_dataset.csv)')
 @click.option('--polymer-chain-size', default=2, type=int, help='Set polymer chain size (2, 3, 4) for polymer generation.')
@@ -18,11 +18,11 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline
 @click.option('--number-conv-channels',  default=225, type=int, help='Number of hidden channels in the convolutional layers.')
 @click.option('--number-fc-channels',  default=225, type=int, help='Number of hidden channels in the MLP layer.')
 @click.option('--prediction-target', default=None, help='Name of the target column from input data file.')
-@click.option('--polymer-type', default='monomer', type=str, help='Type of polymers in the input data.')
+
 @click.option("--epochs", default=200, type=int, help="Number of epochs to train the model.")
 
-def main(run_dftb, input_csv, polymer, dftbplus_path, use_example_data, polymer_chain_size,
-         train_gnn_prediction, batch_size, learning_rate, number_conv_channels, number_fc_channels, prediction_target, polymer_type, epochs):
+def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_example_data, polymer_chain_size,
+         train_gnn_prediction, batch_size, learning_rate, number_conv_channels, number_fc_channels, prediction_target, epochs):
     
     """Run the PolyGraphPy DFTB+ and GNN pipelines for monomer or polymer simulations."""
 
@@ -32,7 +32,8 @@ def main(run_dftb, input_csv, polymer, dftbplus_path, use_example_data, polymer_
     if run_dftb:
         run_dftb_pipeline(
             input_csv=input_csv,
-            is_polymer=polymer,
+            is_polymer=is_polymer,
+            polymer_type=polymer_type,
             dftbplus_path=dftbplus_path,
             use_example_data=use_example_data,
             polymer_chain_size=polymer_chain_size
