@@ -87,11 +87,12 @@ class MonomerXyzGenerator(XyzGeneratorBase):
 class PolymerXyzGenerator(XyzGeneratorBase):
     """Generate .xyz files for homopolymers from acrylate monomers."""
     
-    def __init__(self, input_csv: str, output_dir: str = 'polygraphpy/data/xyz_files', polymer_chain_size: int = 2):
+    def __init__(self, input_csv: str, output_dir: str = 'polygraphpy/data/xyz_files', polymer_chain_size: int = 2, polymer_type: str = 'homopolymer'):
         """Initialize with input CSV and output directory."""
         super().__init__(output_dir)
         self.df = pd.read_csv(input_csv)
         self.polymer_chain_size = polymer_chain_size
+        self.polymer_type = polymer_type
     
     def is_acrylate(self, smiles: str) -> bool:
         """Check if a SMILES string represents an acrylate."""
@@ -158,24 +159,29 @@ class PolymerXyzGenerator(XyzGeneratorBase):
         
         return Chem.MolToSmiles(rw_mol, isomericSmiles=True)
     
-    def build_and_save_homopolymer(self, sml: str, mol_id: str) -> str:
-        """Build homopolymer and save .xyz file."""
+    def build_and_save_polymer(self, smiles_A: str = None, smiles_B: str = None, mol_id_A: str = None, mol_id_B: str = None) -> str:
+        """Build homopolymer or copolymer and save .xyz file."""
         try:
-            if not self.is_acrylate(sml):
-                logging.warning(f"ID {mol_id} with SMILES {sml} is not an acrylate")
-                return f"Skipping ID {mol_id}: Not an acrylate"
+            if not self.is_acrylate(smiles_A):
+                logging.warning(f"ID {mol_id_A} with SMILES {smiles_A} is not an acrylate")
+                return f"Skipping ID {mol_id_A}: Not an acrylate"
             
-            contains_br = sml.__contains__('Br')
-            
-            #[TODO]: user defined
-            sml = self.replace_first_acrylate_cce(sml, contains_br)
+            contains_br_A = smiles_A.__contains__('Br')
+            smiles_A = self.replace_first_acrylate_cce(smiles_A, contains_br_A)
 
-            if not contains_br:
-                bb1 = stk.BuildingBlock(sml, [stk.BromoFactory()])
-                bb2 = stk.BuildingBlock(sml, [stk.BromoFactory()])
+            if self.polymer_type == 'copolymer':
+                contains_br_B = smiles_B.__contains__('Br')
+                smiles_B = self.replace_first_acrylate_cce(smiles_B, contains_br_B)
             else:
-                bb1 = stk.BuildingBlock(sml, [stk.IodoFactory()])
-                bb2 = stk.BuildingBlock(sml, [stk.IodoFactory()])
+                contains_br_B = contains_br_A
+                smiles_B = smiles_A
+
+            if not contains_br_A and not contains_br_B:
+                bb1 = stk.BuildingBlock(smiles_A, [stk.BromoFactory()])
+                bb2 = stk.BuildingBlock(smiles_B, [stk.BromoFactory()])
+            else:
+                bb1 = stk.BuildingBlock(smiles_A, [stk.IodoFactory()])
+                bb2 = stk.BuildingBlock(smiles_B, [stk.IodoFactory()])
             
             polymer = stk.ConstructedMolecule(
                 topology_graph=stk.polymer.Linear(
@@ -197,7 +203,7 @@ class PolymerXyzGenerator(XyzGeneratorBase):
             Chem.SanitizeMol(rdkit_polymer)
             
             rw_mol = Chem.RWMol(rdkit_polymer)
-            if not contains_br:
+            if not contains_br_A and not contains_br_B:
                 atoms_to_replace = [atom.GetIdx() for atom in rw_mol.GetAtoms() if atom.GetSymbol() == 'Br']
             else:
                 atoms_to_replace = [atom.GetIdx() for atom in rw_mol.GetAtoms() if atom.GetSymbol() == 'I']
@@ -211,32 +217,62 @@ class PolymerXyzGenerator(XyzGeneratorBase):
             params.maxIterations = 3000
             params.numThreads = 1
             params.randomSeed = np.random.randint(0, 10000)
+
             if AllChem.EmbedMolecule(rdkit_polymer, params) == -1:
-                logging.warning(f"Embedding failed for homopolymer {mol_id}")
+                if self.polymer_type == 'copolymer':
+                    logging.warning(f"Embedding failed for copolymer {mol_id_A}_{mol_id_B}")
+                else:
+                     logging.warning(f"Embedding failed for copolymer {mol_id_A}")
             
             AllChem.MMFFOptimizeMolecule(rdkit_polymer, maxIters=1000)
             polymer = polymer.with_position_matrix(
                 position_matrix=rdkit_polymer.GetConformer().GetPositions()
             )
                     
-            xyz_filename = os.path.join(self.output_dir, f"homopoly_{mol_id}_chain_{self.polymer_chain_size}")
+            if self.polymer_type == 'copolymer':
+                xyz_filename = os.path.join(self.output_dir, f"copoly_{mol_id_A}_{mol_id_B}_chain_{self.polymer_chain_size}")
+            else:
+                xyz_filename = os.path.join(self.output_dir, f"homopoly_{mol_id_A}_chain_{self.polymer_chain_size}")
             self.write_xyz_file(rdkit_polymer, xyz_filename)
             self.write_pdb_file(rdkit_polymer, xyz_filename)
             return f"Saved homopolymer: {xyz_filename}"
         
         except Exception as e:
-            logging.error(f"Error building homopolymer {mol_id} with SMILES {sml}: {str(e)}")
-            return f"Skipping ID {mol_id}: Exception occurred - {str(e)}"
+            return f"Skipping ID {mol_id_A}: Exception occurred - {str(e)}"
     
+    def generate_copolymers(self, df: pd.DataFrame) -> pd.DataFrame:
+        df_acrylates = pd.DataFrame()
+        
+        for i in range(len(df)):
+            for j in range(i+1,len(df)):
+                smiles_A = df.loc[i, 'smiles']
+                smiles_B = df.loc[j, 'smiles']
+                id_A = df.loc[i, 'id']
+                id_B = df.loc[j, 'id']
+
+                df_aux = pd.DataFrame({'smiles_A': smiles_A, 'smiles_B': smiles_B, 'id_A': id_A, 'id_B': id_B}, index=[0])
+
+                df_acrylates = pd.concat([df_acrylates, df_aux]).reset_index(drop=True)
+        
+        return df_acrylates
+            
     def generate(self) -> list:
-        """Generate .xyz files for homopolymers from acrylate monomers."""
+        """Generate .xyz files for homopolymers and copolymers from acrylate monomers."""
         print("Filtering dataset for acrylate monomers...")
         df_acrylates = self.df[self.df['smiles'].apply(self.is_acrylate)].copy()
         print(f"Found {len(df_acrylates)} acrylate monomers")
         
-        print("Building homopolymers in parallel...")
-        results = Parallel(n_jobs=-1, backend='loky')(
-            delayed(self.build_and_save_homopolymer)(row['smiles'], row['id'])
-            for _, row in tqdm(df_acrylates.iterrows(), total=len(df_acrylates))
-        )
+        if self.polymer_type == 'copolymer':
+            print("Building copolymers in parallel...")
+            df_acrylates = self.generate_copolymers(df_acrylates)
+            results = Parallel(n_jobs=-1, backend='loky')(
+                delayed(self.build_and_save_polymer)(row['smiles_A'], row['smiles_B'], row['id_A'], row['id_B'])
+                for _, row in tqdm(df_acrylates.iterrows(), total=len(df_acrylates))
+            )
+        else:
+            print("Building homopolymers in parallel...")
+            results = Parallel(n_jobs=-1, backend='loky')(
+                delayed(self.build_and_save_polymer)(row['smiles'], None, row['id'], None)
+                for _, row in tqdm(df_acrylates.iterrows(), total=len(df_acrylates))
+            )
         return results
