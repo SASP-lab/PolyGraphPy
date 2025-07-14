@@ -75,17 +75,27 @@ class PolarizabilityTrace(Simulator):
                         # Extract chain_size and id from subfolder name
                         folder_name = os.path.basename(subfolder_path)
                         chain_size = None
-                        mol_id = None
+                        mol_id_A = None
+                        mol_id_B = None
                         if folder_name.startswith('homopoly_'):
                             chain_size_match = pd.Series([folder_name]).str.extract(r'homopoly_\d+_chain_(\d+)')
                             chain_size = int(chain_size_match[0][0]) if not chain_size_match.empty else None
                             id_match = pd.Series([folder_name]).str.extract(r'homopoly_(\d+)_chain_\d+')
-                            mol_id = int(id_match[0][0]) if not id_match.empty else None
+                            mol_id_A = int(id_match[0][0]) if not id_match.empty else None
+                            type = 'homopoly'
                         elif folder_name.startswith('monomer_'):
                             chain_size = 0
                             id_match = pd.Series([folder_name]).str.extract(r'monomer_(\d+)')
-                            mol_id = int(id_match[0][0]) if not id_match.empty else None
-                        results.append((rel_path, xx, yy, zz, trace, chain_size, mol_id))
+                            mol_id_A = int(id_match[0][0]) if not id_match.empty else None
+                            type = 'monomer'
+                        else:
+                            chain_size_match = pd.Series([folder_name]).str.extract(r'copoly_\d+_\d+_(\d+)')
+                            chain_size = int(chain_size_match[0][0]) if not chain_size_match.empty else None
+                            id_match = pd.Series([folder_name]).str.extract(r'copoly_(\d+)_(\d+)_\d+')
+                            mol_id_A = int(id_match[0][0]) if not id_match.empty else None
+                            mol_id_B = int(id_match[1][0]) if not id_match.empty else None
+                            type = 'copoly'
+                        results.append((rel_path, xx, yy, zz, trace, chain_size, mol_id_A, mol_id_B, type))
         return results
     
     def run(self, input_csv: str) -> list:
@@ -108,17 +118,30 @@ class PolarizabilityTrace(Simulator):
             return []
 
         # Create polarizability dataset
-        df_polarizability = pd.DataFrame(trace_results, columns=['file_path', 'xx', 'yy', 'zz', 'static_polarizability', 'chain_size', 'id'])
+        df_polarizability = pd.DataFrame(trace_results, columns=['file_path', 'xx', 'yy', 'zz', 'static_polarizability', 'chain_size', 'id_A', 'id_B', 'type'])
         # Filter out rows where id or chain_size could not be extracted
-        df_polarizability = df_polarizability.dropna(subset=['id', 'chain_size'])
+        df_polarizability = df_polarizability.dropna(subset=['id_A', 'chain_size'])
         if df_polarizability.empty:
             print("Error: No valid IDs or chain sizes extracted from file paths.")
             return trace_results
-        df_polarizability['id'] = df_polarizability['id'].astype(int)
-        df_polarizability['chain_size'] = df_polarizability['chain_size'].astype(int)
-        df_polarizability = df_polarizability.merge(pd.read_csv(input_csv), on=['id'], how='left')
+        df_polarizability['id_A'] = df_polarizability['id_A'].astype(int)
 
-        desired_columns = ['id', 'poly', 'name', 'smiles', 'chain_size', 'xx', 'yy', 'zz', 'static_polarizability']
+        df_input = pd.read_csv(input_csv)
+
+        if not df_polarizability['id_B'].isnull().all():
+            df_input = df_input[['id', 'smiles']]
+            df_polarizability['id_B'] = df_polarizability['id_B'].astype(int)
+
+            df_polarizability = df_polarizability.merge(df_input.rename(columns={'id': 'id_A', 'smiles': 'smiles_A',}), on=['id_A'], how='left')
+            df_polarizability = df_polarizability.merge(df_input.rename(columns={'id': 'id_B', 'smiles': 'smiles_B',}), on=['id_B'], how='left')
+        else:
+            df_input = df_input[['id', 'smiles']]
+            df_polarizability['chain_size'] = df_polarizability['chain_size'].astype(int)
+            df_polarizability = df_polarizability.merge(df_input.rename(columns={'id': 'id_A', 'smiles': 'smiles_A',}), on=['id_A'], how='left')
+            df_polarizability['smiles_B'] = None
+        
+        desired_columns = ['id_A', 'id_B', 'smiles_A', 'smiles_B', 'chain_size', 'xx', 'yy', 'zz', 'static_polarizability', 'type']
+
         available_columns = [col for col in desired_columns if col in df_polarizability.columns]
         df_polarizability = df_polarizability[available_columns]
 
