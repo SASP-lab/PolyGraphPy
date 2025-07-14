@@ -8,7 +8,7 @@ from polygraphpy.gnn.pre_processing import PreProcess
 from polygraphpy.gnn.train import Train
 from polygraphpy.gnn.prediction import Prediction
 
-def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, 
+def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, polymer_type: str = 'homopoly',
                       dftbplus_path: str = None, use_example_data: bool = False, polymer_chain_size: int = 2):
     """Run the full DFTB+ pipeline."""
     # Step 1: Generate .xyz files
@@ -20,7 +20,7 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False,
         raise ValueError("input_csv must be provided unless use_example_data is True")
     
     if is_polymer:
-        xyz_generator = PolymerXyzGenerator(input_csv, polymer_chain_size=polymer_chain_size)
+        xyz_generator = PolymerXyzGenerator(input_csv, polymer_chain_size=polymer_chain_size, polymer_type=polymer_type)
     else:
         xyz_generator = MonomerXyzGenerator(input_csv)
     xyz_results = xyz_generator.generate()
