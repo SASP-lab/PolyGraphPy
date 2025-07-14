@@ -52,7 +52,8 @@ def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', 
     os.makedirs(validation_data_path, exist_ok=True)
 
     # Step 1: Pre processing data
-    pre_process_engine = PreProcess(input_csv=input_csv, train_input_data_path=train_input_data_path, polymer_type=polymer_type, target=prediction_target)
+    pre_process_engine = PreProcess(input_csv=input_csv, train_input_data_path=train_input_data_path, 
+                                    polymer_type=polymer_type, target=prediction_target, gnn_output_path=gnn_output_path)
     data = pre_process_engine.run()
 
     # Step 2: Train GNN model for prediction
