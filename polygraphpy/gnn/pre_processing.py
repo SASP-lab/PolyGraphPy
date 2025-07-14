@@ -8,11 +8,12 @@ from torch_geometric.data import Data
 
 class PreProcess():
     def __init__(self, input_csv: str = None, train_input_data_path: str = None,
-                 polymer_type: str = None, target: str = None):
+                 polymer_type: str = None, target: str = None, gnn_output_path: str = None):
         self.input_csv = input_csv
         self.train_input_data_path = train_input_data_path
         self.polymer_type = polymer_type
         self.target = target
+        self.gnn_output_path = gnn_output_path
         self.scaler = MinMaxScaler()
 
         print('Reading GNN input file.')
@@ -32,7 +33,7 @@ class PreProcess():
         self.df[self.target] = self.scaler.transform(self.df[[self.target]])
 
         # save the scaled data
-        self.df.to_csv(self.input_csv, index=False)
+        self.df.to_csv(f'{self.gnn_output_path}scaled_output.csv', index=False)
     
     def extract_atoms_and_bonds_features_from_monomer_smiles(self) -> tuple[list, list]:
         print("Extracting unique features from atoms and bonds.")
