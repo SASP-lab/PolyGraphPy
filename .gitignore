@@ -184,6 +184,8 @@ molecules/
 xyz_files/
 molecules_temp/
 xyz_files_temp/
+molecules_temp2/
+xyz_files_temp2/
 training_input_data/
 validation_data/
 training_input_data_temp/
