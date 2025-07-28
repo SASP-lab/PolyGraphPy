@@ -164,7 +164,7 @@ class PreProcess():
         print('Making data standardization...')
         self.data_standardization()
 
-        if (len(os.listdir('polygraphpy/data/training_input_data/')) == len(self.df)):
+        if (len(os.listdir(self.train_input_data_path)) == len(self.df)):
             print(f'No training data preparation needed. Jumping to training.')
 
         else:
