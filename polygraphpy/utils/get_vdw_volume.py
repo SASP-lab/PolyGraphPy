@@ -1,7 +1,7 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolDescriptors
 
-def get_vdw_volume(smiles_list: list, verbose: bool = False) -> float:
+def get_vdw_volume(smiles_list: list = [], verbose: bool = False) -> list:
 
     if len(smiles_list) == 0:
         smiles_list = [
@@ -21,6 +21,8 @@ def get_vdw_volume(smiles_list: list, verbose: bool = False) -> float:
             "CC1=CNC(=O)NC1=O",
             "O=C1NC(=O)NC(=O)C1(CC)CC"
         ]
+
+    volume_list = []
 
     # Compute VDW volume using DoubleCubicLatticeVolume
 
@@ -49,4 +51,6 @@ def get_vdw_volume(smiles_list: list, verbose: bool = False) -> float:
         if verbose:
             print(f"{smi:<50} | {volume:15.2f}")
         
-        return volume
+        volume_list.append(volume)
+        
+    return volume_list
