@@ -316,9 +316,10 @@ class PolymerXyzGenerator(XyzGeneratorBase):
         if self.polymer_type == 'copolymer':
             print("Building copolymers in parallel...")
 
-            print("Filtering molecules by number of atoms. Condition: number of atoms <= 27")
+            atoms_limit = 25
+            print(f"Filtering molecules by number of atoms. Condition: number of atoms <= {atoms_limit}")
             print(f"Original size: {len(df_acrylates)}")
-            df_acrylates = df_acrylates[df_acrylates['number_of_atoms'] <= 27].reset_index(drop=True)
+            df_acrylates = df_acrylates[df_acrylates['number_of_atoms'] <= atoms_limit].reset_index(drop=True)
             print(f"Filtered size: {len(df_acrylates)}")
 
             print("Filtering out metallic molecules...")
@@ -331,8 +332,8 @@ class PolymerXyzGenerator(XyzGeneratorBase):
             df_acrylates['cluster'] = assignments
 
             print("Sampling from partitions...")
-            s = 8 # number of samples per cluster
-            sampled_df = df_acrylates.groupby('cluster').apply(lambda x: x.sample(n=s), include_groups=False).reset_index(drop=True)
+            number_of_samples = 8 # number of samples per cluster
+            sampled_df = df_acrylates.groupby('cluster').apply(lambda x: x.sample(n=number_of_samples), include_groups=False).reset_index(drop=True)
             n = len(sampled_df)
             print(f"{int((n*(n-1))/2)} possible copolymers to be created...")
 
