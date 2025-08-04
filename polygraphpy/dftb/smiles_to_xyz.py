@@ -19,7 +19,6 @@ class XyzGeneratorBase:
     
     def __init__(self, output_dir: str = 'polygraphpy/data/xyz_files'):
         """Initialize with output directory."""
-        print(output_dir)
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
     
@@ -94,6 +93,16 @@ class PolymerXyzGenerator(XyzGeneratorBase):
         self.df = pd.read_csv(input_csv)
         self.polymer_chain_size = polymer_chain_size
         self.polymer_type = polymer_type
+
+        atoms_number = []
+        for i in self.df['smiles'].values:
+            mol = Chem.MolFromSmiles(i)
+            mol_with_hs = Chem.AddHs(mol)
+            num_all_atoms = mol_with_hs.GetNumAtoms()
+
+            atoms_number.append(num_all_atoms)
+        
+        self.df['number_of_atoms'] = atoms_number
     
     def is_acrylate(self, smiles: str) -> bool:
         """Check if a SMILES string represents an acrylate."""
@@ -286,6 +295,17 @@ class PolymerXyzGenerator(XyzGeneratorBase):
                 df_acrylates = pd.concat([df_acrylates, df_aux]).reset_index(drop=True)
         
         return df_acrylates
+
+    def has_metal(self, smiles):
+        metallic_elements = ['Li', 'Na', 'K', 'Rb', 'Cs', 'Be', 'Mg', 'Ca', 'Sr', 'Ba', 'Al',
+                             'Fe', 'Zn', 'Cu', 'Ag', 'Au', 'Ni', 'Co', 'Mn', 'Cr', 'Ti', 'V']
+
+        if isinstance(smiles, str):
+            mol = Chem.MolFromSmiles(smiles)
+            if mol:
+                return any(atom.GetSymbol() in metallic_elements for atom in mol.GetAtoms())
+            
+        return False 
             
     def generate(self) -> list:
         """Generate .xyz files for homopolymers and copolymers from acrylate monomers."""
@@ -296,26 +316,37 @@ class PolymerXyzGenerator(XyzGeneratorBase):
         if self.polymer_type == 'copolymer':
             print("Building copolymers in parallel...")
 
-            print("Creating partitions...")
+            print("Filtering molecules by number of atoms. Condition: number of atoms <= 27")
+            print(f"Original size: {len(df_acrylates)}")
+            df_acrylates = df_acrylates[df_acrylates['number_of_atoms'] <= 27].reset_index(drop=True)
+            print(f"Filtered size: {len(df_acrylates)}")
+
+            print("Filtering out metallic molecules...")
+            df_acrylates = df_acrylates[~df_acrylates['smiles'].apply(self.has_metal)]
+
+            print("Creating partitions using RCB method...")
             coords = df_acrylates[['mw', 'complexity', 'polararea', 'xlogp', 'rotbonds', 'heavycnt']].values
             num_levels = 4
             assignments = self.rcb_partition(coords, num_levels=num_levels)
             df_acrylates['cluster'] = assignments
 
             print("Sampling from partitions...")
-            s = 10
-            sampled_df = df_acrylates.groupby('cluster').apply(lambda x: x.sample(n=s)).reset_index(drop=True)
-            print(f"{len(sampled_df)} possible copolymers.")
+            s = 8 # number of samples per cluster
+            sampled_df = df_acrylates.groupby('cluster').apply(lambda x: x.sample(n=s), include_groups=False).reset_index(drop=True)
+            n = len(sampled_df)
+            print(f"{int((n*(n-1))/2)} possible copolymers to be created...")
 
             df_acrylates = self.generate_copolymers(sampled_df)
             results = Parallel(n_jobs=-1, backend='loky')(
                 delayed(self.build_and_save_polymer)(row['smiles_A'], row['smiles_B'], row['id_A'], row['id_B'])
                 for _, row in tqdm(df_acrylates.iterrows(), total=len(df_acrylates))
             )
+
         else:
             print("Building homopolymers in parallel...")
             results = Parallel(n_jobs=-1, backend='loky')(
                 delayed(self.build_and_save_polymer)(row['smiles'], None, row['id'], None)
                 for _, row in tqdm(df_acrylates.iterrows(), total=len(df_acrylates))
             )
+
         return results
