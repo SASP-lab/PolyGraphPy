@@ -3,6 +3,7 @@ import os
 import logging
 import stk
 import numpy as np
+import math
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from tqdm import tqdm
@@ -240,6 +241,36 @@ class PolymerXyzGenerator(XyzGeneratorBase):
         except Exception as e:
             return f"Skipping ID {mol_id_A}: Exception occurred - {str(e)}"
     
+    def rcb_partition(self, points, num_levels=4, points_per_subdomain=None):
+        if num_levels is None and points_per_subdomain is None:
+            num_levels = 3
+        elif num_levels is not None and points_per_subdomain is not None:
+            raise ValueError("Provide either num_levels or points_per_subdomain, not both")
+        elif points_per_subdomain is not None:
+            N = points.shape[0]
+            num_subdomains = int(N / points_per_subdomain)
+            num_levels = int(math.log2(num_subdomains))
+
+        D = points.shape[1]
+        N = points.shape[0]
+        indices = np.arange(N)
+        assignments = np.zeros(N, dtype=int)
+
+        def recurse(ind, start_id, level, dim):
+            if level == 0 or len(ind) <= 1:
+                assignments[ind] = start_id
+                return
+            sorted_ind = ind[np.argsort(points[ind, dim])]
+            mid = len(sorted_ind) // 2
+            left = sorted_ind[:mid]
+            right = sorted_ind[mid:]
+            next_dim = (dim + 1) % D
+            recurse(left, start_id, level - 1, next_dim)
+            recurse(right, start_id + (1 << (level - 1)), level - 1, next_dim)
+
+        recurse(indices, 0, num_levels, 0)
+        return assignments
+    
     def generate_copolymers(self, df: pd.DataFrame) -> pd.DataFrame:
         df_acrylates = pd.DataFrame()
         
@@ -264,7 +295,19 @@ class PolymerXyzGenerator(XyzGeneratorBase):
         
         if self.polymer_type == 'copolymer':
             print("Building copolymers in parallel...")
-            df_acrylates = self.generate_copolymers(df_acrylates)
+
+            print("Creating partitions...")
+            coords = df_acrylates[['mw', 'complexity', 'polararea', 'xlogp', 'rotbonds', 'heavycnt']].values
+            num_levels = 4
+            assignments = self.rcb_partition(coords, num_levels=num_levels)
+            df_acrylates['cluster'] = assignments
+
+            print("Sampling from partitions...")
+            s = 10
+            sampled_df = df_acrylates.groupby('cluster').apply(lambda x: x.sample(n=s)).reset_index(drop=True)
+            print(f"{len(sampled_df)} possible copolymers.")
+
+            df_acrylates = self.generate_copolymers(sampled_df)
             results = Parallel(n_jobs=-1, backend='loky')(
                 delayed(self.build_and_save_polymer)(row['smiles_A'], row['smiles_B'], row['id_A'], row['id_B'])
                 for _, row in tqdm(df_acrylates.iterrows(), total=len(df_acrylates))
