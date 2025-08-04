@@ -5,7 +5,7 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline
 
 #DFTB parameters
 @click.option('--run-dftb', is_flag=True, help='Run the DFTB+ to make simulate monomers and polymers.')
-@click.option('--input-csv', type=click.Path(exists=True), default='polygraphpy/data/full_dataset.csv', help='Path to input CSV file.')
+@click.option('--input-csv', type=click.Path(exists=True), default='polygraphpy/data/original_dataset.csv', help='Path to input CSV file.')
 @click.option('--is-polymer', is_flag=True, help='Generate polymers instead of monomers.')
 @click.option('--polymer-type', default='monomer', type=click.Choice(['monomer', 'homopolymer', 'copolymer']), 
                                 help='Type of polymers in the input data.')
