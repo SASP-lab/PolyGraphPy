@@ -53,7 +53,15 @@ class DFTBSimulation(Simulator):
             job_dir = os.path.join(self.molecules_dir, base_name)
             hsd_file = os.path.join(job_dir, "dftb_in.hsd")
             job_log = os.path.join(job_dir, "process.log")
-            
+
+            detailed_out = os.path.join(job_dir, "detailed.out")
+            if os.path.exists(detailed_out):
+                with open(detailed_out, "r") as f:
+                    if "Electric polarisability (a.u.)" in f.read():
+                        with open(self.log_file, "a") as log:
+                            log.write(f"Skipping {xyz_file}: detailed.out with polarizability exists at {datetime.now()}\n")
+                        return
+                        
             if not os.path.exists(hsd_file):
                 with open(self.log_file, "a") as log:
                     log.write(f"Error: Input file {hsd_file} not found at {datetime.now()}\n")

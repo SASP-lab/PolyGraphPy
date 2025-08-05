@@ -42,6 +42,10 @@ class DFTBInputGenerator(Simulator):
             base_name = Path(xyz_file).stem
             job_dir = os.path.join(self.molecules_dir, base_name)
             hsd_file = os.path.join(job_dir, "dftb_in.hsd")
+            if os.path.exists(hsd_file):
+                with open(self.log_file, "a") as log:
+                    log.write(f"Skipping {xyz_file}: Input file already exists at {datetime.now()}\n")
+                return True
             job_log = os.path.join(job_dir, "process.log")
             
             if not os.access(xyz_file, os.R_OK):
