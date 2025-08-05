@@ -50,6 +50,11 @@ class MonomerXyzGenerator(XyzGeneratorBase):
     def process_row(self, row: pd.Series) -> str:
         """Process a single molecule row to generate .xyz file."""
         mol_id = row['id']
+
+        xyz_filename = os.path.join(self.output_dir, f"monomer_{mol_id}.xyz")
+        if os.path.exists(xyz_filename):
+            return
+        
         sml = row['smiles']
         try:
             m = Chem.MolFromSmiles(sml, sanitize=True)
@@ -171,6 +176,14 @@ class PolymerXyzGenerator(XyzGeneratorBase):
     
     def build_and_save_polymer(self, smiles_A: str = None, smiles_B: str = None, mol_id_A: str = None, mol_id_B: str = None) -> str:
         """Build homopolymer or copolymer and save .xyz file."""
+        
+        if self.polymer_type == 'copolymer':
+            xyz_filename = os.path.join(self.output_dir, f"copoly_{mol_id_A}_{mol_id_B}_chain_{self.polymer_chain_size}.xyz")
+        else:
+            xyz_filename = os.path.join(self.output_dir, f"homopoly_{mol_id_A}_chain_{self.polymer_chain_size}.xyz")
+        if os.path.exists(xyz_filename):
+            return
+        
         try:
             if not self.is_acrylate(smiles_A):
                 logging.warning(f"ID {mol_id_A} with SMILES {smiles_A} is not an acrylate")
