@@ -134,18 +134,20 @@ class PolarizabilityTrace(Simulator):
 
             df_polarizability = df_polarizability.merge(df_input.rename(columns={'id': 'id_A', 'smiles': 'smiles_A',}), on=['id_A'], how='left')
             df_polarizability = df_polarizability.merge(df_input.rename(columns={'id': 'id_B', 'smiles': 'smiles_B',}), on=['id_B'], how='left')
+            aux = 'copoly'
         else:
             df_input = df_input[['id', 'smiles']]
             df_polarizability['chain_size'] = df_polarizability['chain_size'].astype(int)
             df_polarizability = df_polarizability.merge(df_input.rename(columns={'id': 'id_A', 'smiles': 'smiles_A',}), on=['id_A'], how='left')
             df_polarizability['smiles_B'] = None
+            aux = None
         
         desired_columns = ['id_A', 'id_B', 'smiles_A', 'smiles_B', 'chain_size', 'xx', 'yy', 'zz', 'static_polarizability', 'type']
 
         available_columns = [col for col in desired_columns if col in df_polarizability.columns]
         df_polarizability = df_polarizability[available_columns]
 
-        df_polarizability.to_csv('polygraphpy/data/polarizability_data.csv', index=False)
+        df_polarizability.to_csv(f'polygraphpy/data/polarizability_data_{aux}.csv', index=False)
 
         return trace_results
     
