@@ -332,7 +332,7 @@ class PolymerXyzGenerator(XyzGeneratorBase):
             df_acrylates['cluster'] = assignments
 
             print("Sampling from partitions...")
-            number_of_samples = 8 # number of samples per cluster
+            number_of_samples = 9 # number of samples per cluster
             sampled_df = df_acrylates.groupby('cluster').apply(lambda x: x.sample(n=number_of_samples), include_groups=False).reset_index(drop=True)
             n = len(sampled_df)
             print(f"{int((n*(n-1))/2)} possible copolymers to be created...")
