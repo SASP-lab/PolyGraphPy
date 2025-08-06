@@ -45,7 +45,7 @@ def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_examp
     else:
         print('Jumping DFTB+ execution.')
 
-    aux = None
+    aux = ''
     if polymer_type == 'copolymer':
         aux = '_copoly'
 

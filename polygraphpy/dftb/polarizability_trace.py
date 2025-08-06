@@ -140,7 +140,7 @@ class PolarizabilityTrace(Simulator):
             df_polarizability['chain_size'] = df_polarizability['chain_size'].astype(int)
             df_polarizability = df_polarizability.merge(df_input.rename(columns={'id': 'id_A', 'smiles': 'smiles_A',}), on=['id_A'], how='left')
             df_polarizability['smiles_B'] = None
-            aux = None
+            aux = ''
         
         desired_columns = ['id_A', 'id_B', 'smiles_A', 'smiles_B', 'chain_size', 'xx', 'yy', 'zz', 'static_polarizability', 'type']
 
