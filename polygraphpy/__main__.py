@@ -45,10 +45,14 @@ def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_examp
     else:
         print('Jumping DFTB+ execution.')
 
+    aux = None
+    if polymer_type == 'copolymer':
+        aux = '_copoly'
+
     if train_gnn_prediction:
         if prediction_target is not None:
             run_gnn_pipeline(
-                input_csv=input_csv.split('/')[0] + '/' + input_csv.split('/')[1] + '/polarizability_data.csv',
+                input_csv=input_csv.split('/')[0] + '/' + input_csv.split('/')[1] + f'/polarizability_data{aux}.csv',
                 batch_size=batch_size,
                 learning_rate=learning_rate,
                 number_conv_channels=number_conv_channels,
