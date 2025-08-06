@@ -1,7 +1,6 @@
 import os
 import glob
 import subprocess
-import shutil
 from multiprocessing import Pool
 from pathlib import Path
 from datetime import datetime

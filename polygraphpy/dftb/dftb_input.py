@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from datetime import datetime
-from typing import Set, Dict
+from typing import Set
 from polygraphpy.core.simulator import Simulator
 
 class DFTBInputGenerator(Simulator):
