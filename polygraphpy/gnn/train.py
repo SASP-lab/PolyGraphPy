@@ -9,7 +9,7 @@ from polygraphpy.gnn.models.gcn import GCN
 
 class Train():
     def __init__(self, conv_hidden_channels:int, mlp_hidden_channels:int, data: pd.DataFrame, learning_rate: float, batch_size: int = 8, epochs: int = 100,
-                 train_input_data_path: str = None, gnn_output_path: str = None, validation_data_path: str = None) -> None:
+                 train_input_data_path: str = None, gnn_output_path: str = None, validation_data_path: str = None, polymer_type: str = 'monomer') -> None:
         self.training_dataset = []
         self.input_dim = 0
         self.min_val_error = 10e9
@@ -19,6 +19,7 @@ class Train():
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.epochs = epochs
+        self.polymer_type = polymer_type
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Device: {self.device}')
@@ -34,16 +35,20 @@ class Train():
         self.model_hyperparameters = pd.DataFrame({'input_dim': self.input_dim,
                                                     'conv_hidden_channels': conv_hidden_channels,
                                                     'mlp_hidden_channels': mlp_hidden_channels}, index=[0])
-        
-        self.model_hyperparameters.to_csv(f'{gnn_output_path}/gcn_hyperparameters.csv', index=False)
 
         self.optimizer = torch.optim.Adam(self.training_model.parameters(), lr=learning_rate)
         self.criterion = torch.nn.MSELoss()
     
     def read_train_data(self, data: pd.DataFrame) -> None:
-        print(f'Reading training data.')
+        print(f'Reading training data. Size: {len(data)}')
         for row in tqdm(data.itertuples()):
-            self.training_dataset.append(torch.load(f'{self.train_input_data_path}/{row.id}_{row.chain_size}.pt', weights_only=False))
+            try:
+                if self.polymer_type != 'copolymer':
+                    self.training_dataset.append(torch.load(f'{self.train_input_data_path}{row.id_A}_{row.chain_size}.pt', weights_only=False))
+                else:
+                    self.training_dataset.append(torch.load(f'{self.train_input_data_path}{row.id_A}_{row.id_B}_{row.chain_size}.pt', weights_only=False))
+            except:
+                continue
         
         self.input_dim = self.training_dataset[0].x.shape[1]
 
@@ -105,7 +110,10 @@ class Train():
 
         if avg_loss < self.min_val_error:
             print(f'Model updated with best result: Val loss = {avg_loss:.5f} at epoch = {epoch}')
-            torch.save(self.training_model, f'{self.gnn_output_path}/model_gcn.pt')
+            if self.polymer_type == 'copolymer':
+                torch.save(self.training_model, f'{self.gnn_output_path}model_gnn_copoly.pt')
+            else:
+                torch.save(self.training_model, f'{self.gnn_output_path}model_gcn.pt')
             self.min_val_error = avg_loss
         
         return avg_loss
@@ -114,10 +122,18 @@ class Train():
         print(f'Saving validation data.')
 
         for graph in tqdm(val_dataset):
-            torch.save(graph, f'{self.validation_data_path}/{int(graph.mol_id.detach().numpy()[0])}_{int(graph.chain_size.detach().numpy()[0])}.pt')
+            if self.polymer_type != 'copolymer':
+                torch.save(graph, f'{self.validation_data_path}{int(graph.mol_id.detach().numpy()[0])}_{int(graph.chain_size.detach().numpy()[0])}.pt')
+            else:
+                torch.save(graph, f'{self.validation_data_path}{int(graph.id_A.detach().numpy()[0])}{int(graph.id_B.detach().numpy()[0])}_{int(graph.chain_size.detach().numpy()[0])}.pt')
 
     def save_training_statistics(self, df: pd.DataFrame):
-        df.to_csv(f'{self.gnn_output_path}/training_statistics.csv', index=False)
+        aux = ''
+
+        if self.polymer_type == 'copolymer':
+            aux = '_copoly'
+
+        df.to_csv(f'{self.gnn_output_path}training_statistics{aux}.csv', index=False)
     
     def run(self):
         df_train_statistics = pd.DataFrame()
