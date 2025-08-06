@@ -6,6 +6,7 @@ from tqdm import tqdm
 from rdkit import Chem
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
 from torch_geometric.data import Data
+from joblib import Parallel, delayed
 
 from polygraphpy.utils.make_dummy_atom import replace_first_acrylate_cce
 
@@ -127,6 +128,14 @@ class PreProcess():
 
         return bonds
 
+    def get_building_block(self, smiles, contains_br: bool):
+        if contains_br:
+            bb = stk.BuildingBlock(smiles, [stk.IodoFactory()])
+        else:
+            bb = stk.BuildingBlock(smiles, [stk.BromoFactory()])
+        
+        return bb
+
     def build_molecule(self, smiles_A: str, smiles_B: str):
         contains_br_A = smiles_A.__contains__('Br')
         smiles_A = replace_first_acrylate_cce(smiles_A, contains_br_A)
@@ -134,12 +143,8 @@ class PreProcess():
         contains_br_B = smiles_B.__contains__('Br')
         smiles_B = replace_first_acrylate_cce(smiles_B, contains_br_B)
 
-        if not contains_br_A and not contains_br_B:
-            bb1 = stk.BuildingBlock(smiles_A, [stk.BromoFactory()])
-            bb2 = stk.BuildingBlock(smiles_B, [stk.BromoFactory()])
-        else:
-            bb1 = stk.BuildingBlock(smiles_A, [stk.IodoFactory()])
-            bb2 = stk.BuildingBlock(smiles_B, [stk.IodoFactory()])
+        bb1 = self.get_building_block(smiles_A, contains_br_A)
+        bb2 = self.get_building_block(smiles_B, contains_br_B)
         
         polymer = stk.ConstructedMolecule(
             topology_graph=stk.polymer.Linear(
@@ -147,7 +152,7 @@ class PreProcess():
                 repeating_unit='AB',
                 num_repeating_units=1,
                 optimizer=stk.MCHammer(
-                    num_steps=4000,
+                    num_steps=200,
                     target_bond_length=1.54,
                     nonbond_sigma = 0.4,
                     random_seed=None
@@ -189,7 +194,8 @@ class PreProcess():
     
     def prepare_copolymer_input_data(self, atom_encoder: OneHotEncoder, bond_encoder: OneHotEncoder):
         print(f'Starting copolymer data preparation. {len(self.df)} to go.')
-        for row in tqdm(self.df.itertuples()):
+
+        def process_row(row):
             atoms = []
             bonds = []
 
@@ -212,11 +218,11 @@ class PreProcess():
             edge_index = torch.tensor(connectivity)
             
             edge_attributes = df_bonds[['type', 'is_conjugated', 'is_aromatic']]
-            edge_attributes = pd.concat([edge_attributes,edge_attributes.sort_index(ascending=False)]).reset_index(drop=True)
+            edge_attributes = pd.concat([edge_attributes, edge_attributes.sort_index(ascending=False)]).reset_index(drop=True)
             edge_attr = torch.Tensor(pd.DataFrame(bond_encoder.transform(edge_attributes).toarray()).values)
             
             edge_weight = df_bonds[['weight']]
-            edge_weight = pd.concat([edge_weight,edge_weight.sort_index(ascending=False)]).reset_index(drop=True)
+            edge_weight = pd.concat([edge_weight, edge_weight.sort_index(ascending=False)]).reset_index(drop=True)
             edge_weight = torch.tensor(edge_weight['weight'].astype('float32').values)
 
             y = torch.Tensor([row.__getattribute__(self.target)])
@@ -227,7 +233,11 @@ class PreProcess():
             mol_data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, edge_weight=edge_weight, id_A=id_A, id_B=id_B, chain_size=chain_size)
             mol_data.validate()
 
-            torch.save(mol_data, f'{self.train_input_data_path}/{row.id_A}_{row.id_B}_{row.chain_size}.pt')
+            torch.save(mol_data, f'{self.train_input_data_path}{row.id_A}_{row.id_B}_{row.chain_size}.pt')
+
+        Parallel(n_jobs=-1)(delayed(process_row)(row) for row in tqdm(self.df.itertuples()))
+
+        print(f'Training data preparation finished.')
     
     def prepare_monomer_input_data(self, atom_encoder: OneHotEncoder, bond_encoder: OneHotEncoder):
         print(f'Training data preparation starting. {len(self.df)} to go.')
@@ -265,7 +275,7 @@ class PreProcess():
             mol_data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, edge_weight=edge_weight, mol_id=mol_id, chain_size=chain_size)
             mol_data.validate()
             
-            torch.save(mol_data, f'{self.train_input_data_path}/{row.id_A}_{row.chain_size}.pt')
+            torch.save(mol_data, f'{self.train_input_data_path}{row.id_A}_{row.chain_size}.pt')
     
         print(f'Training data preparation finished.')
 
