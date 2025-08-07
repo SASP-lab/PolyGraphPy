@@ -19,7 +19,7 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
 @click.option('--learning-rate', default=1e-4, type=float, help='Training learning rate.')
 @click.option('--number-conv-channels', default=225, type=int, help='Number of hidden channels in the convolutional layers.')
 @click.option('--number-fc-channels', default=225, type=int, help='Number of hidden channels in the MLP layer.')
-@click.option('--prediction-target', default=None, help='Name of the target column from input data file.')
+@click.option('--prediction-target', default='static_polarizability', help='Name of the target column from input data file.')
 @click.option("--epochs", default=200, type=int, help="Number of epochs to train the model.")
 
 #Generative parameters
