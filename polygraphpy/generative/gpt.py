@@ -48,13 +48,19 @@ class GenerativeTrainer:
         self.data_path = data_path
         self.model_output_path = model_output_path
         os.makedirs(self.model_output_path, exist_ok=True)
+
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.epochs = epochs
+
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print('Training in:', self.device)
 
     def run(self):
+        if os.path.exists(os.path.join(self.model_output_path, 'gpt_selfies.pt')):
+            print("Existing model found, skipping training.")
+            return self.model_output_path
+        
         df = pd.read_csv(os.path.join(self.data_path, 'training_data.csv'))
 
         texts = [f"polarizability: {p} selfies: {i}" for i, p in zip(df['selfies'], df['polarizability'])]
@@ -103,7 +109,7 @@ class MoleculeGenerator:
 
         self.model = AutoModelForCausalLM.from_pretrained('gpt2')
         self.model.resize_token_embeddings(len(self.tokenizer))
-        self.model.load_state_dict(torch.load(os.path.join(self.model_path, 'gpt_selfies.pt')))
+        self.model = torch.load(os.path.join(self.model_path, 'gpt_selfies.pt'))
         self.model = self.model.to(self.device)
         self.model.eval()
 
