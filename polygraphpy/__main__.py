@@ -24,7 +24,7 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
 
 #Generative parameters
 @click.option('--run-generative', is_flag=True, help='Run the generative model pipeline.')
-@click.option('--generative-model', default='gpt', type=click.Choice(['gpt', 'ga', 'both']), help='Generative model to use: gpt, ga, or both.')
+@click.option('--generative-model', default='gpt', type=click.Choice(['gpt', 'ga']), help='Generative model to use: GPT-based or Genetic Algorithm.')
 @click.option('--target-polarizability', default=None, type=float, help='Target scaled polarizability (0-1). If not provided, use linspace(0,1,100).')
 @click.option('--generative-batch-size', default=4, type=int, help='Batch size for GPT training.')
 @click.option('--generative-learning-rate', default=5e-5, type=float, help='Learning rate for GPT training.')
@@ -35,6 +35,7 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
 def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_example_data, polymer_chain_size, train_gnn_prediction, batch_size, learning_rate, 
          number_conv_channels, number_fc_channels, prediction_target, epochs, run_generative, generative_model, target_polarizability, generative_batch_size,
          generative_learning_rate, generative_epochs, ga_population_size, ga_generations):
+    
     """Run the PolyGraphPy DFTB+ and GNN pipelines for monomer or polymer simulations."""
 
     if use_example_data:
@@ -77,8 +78,9 @@ def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_examp
         print('Jumping GNN training and prediction.')
 
     if run_generative:
-        gen_input_csv = input_csv.split('/')[0] + '/' + input_csv.split('/')[1] + f'/polarizability_data.csv'
-        if generative_model == 'gpt' or generative_model == 'both':
+        gen_input_csv = input_csv.split('/')[0] + '/' + input_csv.split('/')[1] + '/polarizability_data.csv'
+
+        if generative_model == 'gpt':
             run_generative_pipeline(
                 input_csv=gen_input_csv,
                 batch_size=generative_batch_size,
@@ -87,7 +89,8 @@ def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_examp
                 target_polarizability=target_polarizability,
                 polymer_type=polymer_type
             )
-        if generative_model == 'ga' or generative_model == 'both':
+
+        else:
             run_generative_ga_pipeline(
                 input_csv=gen_input_csv,
                 prediction_target=prediction_target,
