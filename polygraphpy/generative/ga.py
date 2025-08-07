@@ -13,8 +13,10 @@ from tqdm import tqdm
 
 class GaModelLoader:
     def __init__(self, input_csv, gnn_output_path, train_input_data_path, polymer_type, prediction_target):
+
         self.preprocess = PreProcess(input_csv=input_csv, train_input_data_path=train_input_data_path,
                                      polymer_type=polymer_type, target=prediction_target, gnn_output_path=gnn_output_path)
+        
         self.df = self.preprocess.run()
 
         atoms_list, bonds_list = self.preprocess.extract_atoms_and_bonds_features_from_monomer_smiles()
@@ -23,15 +25,23 @@ class GaModelLoader:
         self.bond_encoder = self.preprocess.make_encoder(pd.DataFrame(bonds_list).drop_duplicates().reset_index(drop=True))
 
         self.model = torch.load(os.path.join(gnn_output_path, 'model_gcn.pt'), weights_only=False)
+        print('GNN model:')
+        print(self.model)
 
     def get_components(self):
         return self.model, self.preprocess, self.atom_encoder, self.bond_encoder
 
 class FragmentGA:
-    def __init__(self, csv_path, model, preprocess, atom_encoder, bond_encoder, population_size=30, target_polarizability=0.43):
+    def __init__(self, csv_path, model, preprocess, atom_encoder, bond_encoder, population_size=30, 
+                 prediction_target='static_polarizability', target_polarizability=0.43):
+        
         self.df = pd.read_csv(csv_path)
+        self.df = self.df[self.df['chain_size'] == 0]
         self.target_value = target_polarizability
+        self.target_column = prediction_target
+
         self._pre_process()
+
         self.model = model.eval()
         self.preprocess = preprocess
         self.atom_encoder = atom_encoder
@@ -39,18 +49,19 @@ class FragmentGA:
         self.population_size = population_size
         self.fragments = self._extract_fragments()
 
+        print(f'Fragments size: {len(self.fragments)}')
         print("Fragments sample: ")
-        print(self.fragments[:25])
+        print(self.fragments[:15])
 
         self.device = next(model.parameters()).device
 
     def _pre_process(self):
         scaler = MinMaxScaler()
-        self.df['target_scaled'] = scaler.fit_transform(self.df['static_polarizability'].values.reshape(-1,1))
+        self.df['target_scaled'] = scaler.fit_transform(self.df[self.target_column].values.reshape(-1,1))
 
         atoms_number = []
 
-        for i in self.df['smiles'].values:
+        for i in self.df['smiles_A'].values:
             mol = Chem.MolFromSmiles(i)
             mol_with_hs = Chem.AddHs(mol)
             num_all_atoms = mol_with_hs.GetNumAtoms()
@@ -58,15 +69,17 @@ class FragmentGA:
 
         self.df['number_of_atoms'] = atoms_number
 
+        print(f'Datsaset original size: {len(self.df)}')
         self.df = self.df[self.target_value <= self.df['target_scaled']*1.20].reset_index(drop=True)
         self.df = self.df[self.target_value >= self.df['target_scaled']*0.80].reset_index(drop=True)
         self.df = self.df[self.df['number_of_atoms'] <= 40].reset_index(drop=True)
+        print(f'Datsaset size after filtering process: {len(self.df)}')
 
     def _extract_fragments(self):
         all_frags = set()
 
         acrylate_core = Chem.MolFromSmarts('C=C-C(=O)O-[*]')
-        for smi in tqdm(self.df['smiles']):
+        for smi in tqdm(self.df['smiles_A']):
             mol = Chem.MolFromSmiles(smi, sanitize=True)
 
             if mol is None:
@@ -105,9 +118,6 @@ class FragmentGA:
             
             df_nodes = pd.DataFrame(atoms)
             nodes_features = pd.DataFrame(self.atom_encoder.transform(df_nodes.drop(['idx'], axis=1)).toarray())
-            zero_vector = np.zeros((nodes_features.shape[0], 1))
-            nodes_features = pd.concat([nodes_features, pd.DataFrame(zero_vector)], axis=1)
-            nodes_features = pd.concat([nodes_features, pd.DataFrame(zero_vector)], axis=1)
             x = torch.tensor(nodes_features.astype('float32').values)
 
             bonds = self.preprocess.get_bonds_information(m1, [])
