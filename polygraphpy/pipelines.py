@@ -105,22 +105,33 @@ def run_generative_ga_pipeline(input_csv='polygraphpy/data/polarizability_data.c
     if polymer_type != 'monomer':
         print("GA generative model currently supports only monomer.")
         return
+    
+    print('Starting generative model using GA...')
+    
     train_input_data_path = 'polygraphpy/data/training_input_data/'
     gnn_output_path = 'polygraphpy/data/gnn_output/'
+
+    print('Loading GNN model...')
     loader = GaModelLoader(input_csv, gnn_output_path, train_input_data_path, polymer_type, prediction_target)
     model, preprocess, atom_encoder, bond_encoder = loader.get_components()
+
     if target_polarizability is None:
         targets = np.linspace(0, 1, 100)
     else:
         targets = [target_polarizability]
+
     data = []
     output_path = 'polygraphpy/data/ga_output/'
     os.makedirs(output_path, exist_ok=True)
+
     for t in tqdm(targets):
-        ga = FragmentGA(input_csv, model, preprocess, atom_encoder, bond_encoder, population_size, t)
+        print(f'Generating for target {t}')
+        ga = FragmentGA(input_csv, model, preprocess, atom_encoder, bond_encoder, population_size, prediction_target, t)
         fitness_scores = ga.run_parallel(generations, t)
         for smi, fit in fitness_scores:
             if fit > -1.0:
-                data.append({'smiles': smi, 'static_polarizability': t, 'fitness': fit})
-    df = pd.DataFrame(data)
+                data.append({'smiles': smi, 'static_polarizability': t, 'fitness': fit[0]})
+
+    df = pd.DataFrame(data[:20])
+    print('Saving Top 20 generated molecules...')
     df.to_csv(os.path.join(output_path, 'generated_molecules.csv'), index=False)
