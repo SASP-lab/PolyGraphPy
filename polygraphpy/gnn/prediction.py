@@ -20,9 +20,9 @@ class Prediction():
 
         print(f'Loading trained model.')
         if self.polymer_type == 'copolymer':
-            self.model = torch.load(f'{gnn_output_path}model_gnn_copoly.pt', weights_only=False, map_location=self.device)
+            self.model = torch.load(f'{gnn_output_path}model_gnn_copoly.pt', weights_only=False)
         else:
-            self.model = torch.load(f'{gnn_output_path}model_gcn.pt', weights_only=False, map_location=self.device)
+            self.model = torch.load(f'{gnn_output_path}model_gcn.pt', weights_only=False)
         print(self.model)
         self.model.to(self.device)
         self.model.eval()
