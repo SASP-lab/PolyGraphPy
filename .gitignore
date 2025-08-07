@@ -193,4 +193,4 @@ validation_data_temp/
 experiments/
 .DS_Store
 polygraphpy/data/count_files.py
-polygraphpy/data/45k_xyz_incomplete_simulation.zip
+nohup.out
