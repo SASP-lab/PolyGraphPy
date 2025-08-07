@@ -9,16 +9,20 @@ from tqdm import tqdm
 from sklearn.metrics import mean_absolute_percentage_error, r2_score, mean_squared_error
 
 class Prediction():
-    def __init__(self, validation_data_path: str, gnn_output_path: str) -> None:
+    def __init__(self, validation_data_path: str, gnn_output_path: str, polymer_type: str) -> None:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Using device: {self.device}')
 
         self.validation_data = os.listdir(validation_data_path)
         self.gnn_output_path = gnn_output_path
         self.val_dataset = []
+        self.polymer_type = polymer_type
 
         print(f'Loading trained model.')
-        self.model = torch.load(f'{gnn_output_path}/model_gcn.pt', weights_only=False, map_location=self.device)
+        if self.polymer_type == 'copolymer':
+            self.model = torch.load(f'{gnn_output_path}model_gnn_copoly.pt', weights_only=False, map_location=self.device)
+        else:
+            self.model = torch.load(f'{gnn_output_path}model_gcn.pt', weights_only=False, map_location=self.device)
         print(self.model)
         self.model.to(self.device)
         self.model.eval()

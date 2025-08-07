@@ -125,7 +125,7 @@ class Train():
             if self.polymer_type != 'copolymer':
                 torch.save(graph, f'{self.validation_data_path}{int(graph.mol_id.detach().numpy()[0])}_{int(graph.chain_size.detach().numpy()[0])}.pt')
             else:
-                torch.save(graph, f'{self.validation_data_path}{int(graph.id_A.detach().numpy()[0])}{int(graph.id_B.detach().numpy()[0])}_{int(graph.chain_size.detach().numpy()[0])}.pt')
+                torch.save(graph, f'{self.validation_data_path}{int(graph.id_A.detach().numpy()[0])}_{int(graph.id_B.detach().numpy()[0])}_{int(graph.chain_size.detach().numpy()[0])}.pt')
 
     def save_training_statistics(self, df: pd.DataFrame):
         aux = ''
