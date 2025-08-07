@@ -1,5 +1,5 @@
 import click
-from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline
+from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_generative_pipeline, run_generative_ga_pipeline
 
 @click.command()
 
@@ -15,16 +15,26 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline
 
 #GNN parameters
 @click.option('--train-gnn-prediction', is_flag=True, help='Train the GNN model to make property predictions.')
-@click.option('--batch-size',  default=16, type=int, help='Training batch size.')
-@click.option('--learning-rate',  default=1e-4, type=float, help='Training learning rate.')
-@click.option('--number-conv-channels',  default=225, type=int, help='Number of hidden channels in the convolutional layers.')
-@click.option('--number-fc-channels',  default=225, type=int, help='Number of hidden channels in the MLP layer.')
+@click.option('--batch-size', default=16, type=int, help='Training batch size.')
+@click.option('--learning-rate', default=1e-4, type=float, help='Training learning rate.')
+@click.option('--number-conv-channels', default=225, type=int, help='Number of hidden channels in the convolutional layers.')
+@click.option('--number-fc-channels', default=225, type=int, help='Number of hidden channels in the MLP layer.')
 @click.option('--prediction-target', default=None, help='Name of the target column from input data file.')
 @click.option("--epochs", default=200, type=int, help="Number of epochs to train the model.")
 
-def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_example_data, polymer_chain_size,
-         train_gnn_prediction, batch_size, learning_rate, number_conv_channels, number_fc_channels, prediction_target, epochs):
-    
+#Generative parameters
+@click.option('--run-generative', is_flag=True, help='Run the generative model pipeline.')
+@click.option('--generative-model', default='gpt', type=click.Choice(['gpt', 'ga', 'both']), help='Generative model to use: gpt, ga, or both.')
+@click.option('--target-polarizability', default=None, type=float, help='Target scaled polarizability (0-1). If not provided, use linspace(0,1,100).')
+@click.option('--generative-batch-size', default=4, type=int, help='Batch size for GPT training.')
+@click.option('--generative-learning-rate', default=5e-5, type=float, help='Learning rate for GPT training.')
+@click.option('--generative-epochs', default=100, type=int, help='Number of epochs for GPT training.')
+@click.option('--ga-population-size', default=100, type=int, help='Population size for GA.')
+@click.option('--ga-generations', default=50, type=int, help='Number of generations for GA.')
+
+def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_example_data, polymer_chain_size, train_gnn_prediction, batch_size, learning_rate, 
+         number_conv_channels, number_fc_channels, prediction_target, epochs, run_generative, generative_model, target_polarizability, generative_batch_size,
+         generative_learning_rate, generative_epochs, ga_population_size, ga_generations):
     """Run the PolyGraphPy DFTB+ and GNN pipelines for monomer or polymer simulations."""
 
     if use_example_data:
@@ -65,6 +75,27 @@ def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_examp
             print('Make sure that you provide the target for train and prediction.')
     else:
         print('Jumping GNN training and prediction.')
+
+    if run_generative:
+        gen_input_csv = input_csv.split('/')[0] + '/' + input_csv.split('/')[1] + f'/polarizability_data.csv'
+        if generative_model == 'gpt' or generative_model == 'both':
+            run_generative_pipeline(
+                input_csv=gen_input_csv,
+                batch_size=generative_batch_size,
+                learning_rate=generative_learning_rate,
+                epochs=generative_epochs,
+                target_polarizability=target_polarizability,
+                polymer_type=polymer_type
+            )
+        if generative_model == 'ga' or generative_model == 'both':
+            run_generative_ga_pipeline(
+                input_csv=gen_input_csv,
+                prediction_target=prediction_target,
+                polymer_type=polymer_type,
+                target_polarizability=target_polarizability,
+                population_size=ga_population_size,
+                generations=ga_generations
+            )
 
 if __name__ == '__main__':
     main()
