@@ -87,6 +87,7 @@ def run_generative_pipeline(input_csv='polygraphpy/data/polarizability_data.csv'
     os.makedirs(generative_data_path, exist_ok=True)
     os.makedirs(model_path, exist_ok=True)
     os.makedirs(output_path, exist_ok=True)
+    
     if target_polarizability is None:
         targets = np.linspace(0, 1, 100)
     else:
