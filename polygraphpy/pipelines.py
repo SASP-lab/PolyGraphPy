@@ -1,5 +1,7 @@
 import os
+import numpy as np
 import importlib.resources as resources
+import pandas as pd
 from polygraphpy.dftb.smiles_to_xyz import MonomerXyzGenerator, PolymerXyzGenerator
 from polygraphpy.dftb.dftb_input import DFTBInputGenerator
 from polygraphpy.dftb.dftb_simulation import DFTBSimulation
@@ -7,6 +9,9 @@ from polygraphpy.dftb.polarizability_trace import PolarizabilityTrace
 from polygraphpy.gnn.pre_processing import PreProcess
 from polygraphpy.gnn.train import Train
 from polygraphpy.gnn.prediction import Prediction
+from polygraphpy.generative.gpt import GenerativePreprocess, SelfiesDataset, GenerativeTrainer, MoleculeGenerator
+from polygraphpy.generative.ga import GaModelLoader, FragmentGA, build_molecule
+from tqdm import tqdm
 
 def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, polymer_type: str = 'homopoly',
                       dftbplus_path: str = None, use_example_data: bool = False, polymer_chain_size: int = 2):
@@ -69,3 +74,52 @@ def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', 
     # Step 3: Plot validation result and save dataframes
     prediction_engine = Prediction(validation_data_path, gnn_output_path, polymer_type)
     prediction_engine.run()
+
+def run_generative_pipeline(input_csv='polygraphpy/data/polarizability_data.csv', batch_size=4, learning_rate=5e-5, epochs=100, target_polarizability=None, polymer_type='monomer'):
+    if polymer_type != 'monomer':
+        print("GPT generative model currently supports only monomer.")
+        return
+    
+    generative_data_path = 'polygraphpy/data/generative_data/'
+    model_path = 'polygraphpy/data/generative_model/'
+    output_path = 'polygraphpy/data/generative_output/'
+    
+    os.makedirs(generative_data_path, exist_ok=True)
+    os.makedirs(model_path, exist_ok=True)
+    os.makedirs(output_path, exist_ok=True)
+    if target_polarizability is None:
+        targets = np.linspace(0, 1, 100)
+    else:
+        targets = [target_polarizability]
+        
+    prep = GenerativePreprocess(input_csv, generative_data_path)
+    prep.run()
+    trainer = GenerativeTrainer(generative_data_path, model_path, batch_size, learning_rate, epochs)
+    trainer.run()
+    generator = MoleculeGenerator(model_path, output_path)
+    generator.run(targets)
+
+def run_generative_ga_pipeline(input_csv='polygraphpy/data/polarizability_data.csv', prediction_target=None, polymer_type='monomer',
+                               target_polarizability=None, population_size=100, generations=50):
+    if polymer_type != 'monomer':
+        print("GA generative model currently supports only monomer.")
+        return
+    train_input_data_path = 'polygraphpy/data/training_input_data/'
+    gnn_output_path = 'polygraphpy/data/gnn_output/'
+    loader = GaModelLoader(input_csv, gnn_output_path, train_input_data_path, polymer_type, prediction_target)
+    model, preprocess, atom_encoder, bond_encoder = loader.get_components()
+    if target_polarizability is None:
+        targets = np.linspace(0, 1, 100)
+    else:
+        targets = [target_polarizability]
+    data = []
+    output_path = 'polygraphpy/data/ga_output/'
+    os.makedirs(output_path, exist_ok=True)
+    for t in tqdm(targets):
+        ga = FragmentGA(input_csv, model, preprocess, atom_encoder, bond_encoder, population_size, t)
+        fitness_scores = ga.run_parallel(generations, t)
+        for smi, fit in fitness_scores:
+            if fit > -1.0:
+                data.append({'smiles': smi, 'static_polarizability': t, 'fitness': fit})
+    df = pd.DataFrame(data)
+    df.to_csv(os.path.join(output_path, 'generated_molecules.csv'), index=False)
