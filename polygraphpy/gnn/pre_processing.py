@@ -152,7 +152,7 @@ class PreProcess():
                 repeating_unit='AB',
                 num_repeating_units=1,
                 optimizer=stk.MCHammer(
-                    num_steps=200,
+                    num_steps=10,
                     target_bond_length=1.54,
                     nonbond_sigma = 0.4,
                     random_seed=None
