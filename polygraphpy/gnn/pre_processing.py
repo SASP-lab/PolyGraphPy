@@ -33,12 +33,12 @@ class PreProcess():
 
     def get_small_group_of_smiles_A(self):
         df_grouped = self.df.groupby('smiles_A').count().sort_values(by='id_A').reset_index()
-        df_grouped = df_grouped[df_grouped['id_A'] >= 150]
+        df_grouped = df_grouped[df_grouped['id_A'] >= 30]
 
         self.df = self.df[self.df['smiles_A'].isin(df_grouped['smiles_A'])]
 
-        Q1 = self.df['static_polarizability'].quantile(0.25)
-        Q3 = self.df['static_polarizability'].quantile(0.75)
+        Q1 = self.df['static_polarizability'].quantile(0.15)
+        Q3 = self.df['static_polarizability'].quantile(0.85)
         df_filtered = self.df[(self.df['static_polarizability'] >= Q1) & (self.df['static_polarizability'] <= Q3)].reset_index(drop=True)
 
         self.df = df_filtered
