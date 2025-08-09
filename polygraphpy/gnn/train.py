@@ -6,6 +6,7 @@ from tqdm import tqdm
 from torch_geometric.loader import DataLoader
 
 from polygraphpy.gnn.models.gcn import GCN
+from polygraphpy.gnn.models.graphunet import GraphUNetModel
 
 class Train():
     def __init__(self, conv_hidden_channels:int, mlp_hidden_channels:int, data: pd.DataFrame, learning_rate: float, batch_size: int = 8, epochs: int = 100,
@@ -26,15 +27,12 @@ class Train():
 
         self.read_train_data(data)
 
-        self.training_model = GCN(self.input_dim, conv_hidden_channels, mlp_hidden_channels)
+        #self.training_model = GCN(self.input_dim, conv_hidden_channels, mlp_hidden_channels)
+        self.training_model = GraphUNetModel(self.input_dim, conv_hidden_channels, mlp_hidden_channels)
         self.training_model = self.training_model.to(self.device)
 
         print('Model architecture:')
         print(self.training_model)
-
-        self.model_hyperparameters = pd.DataFrame({'input_dim': self.input_dim,
-                                                    'conv_hidden_channels': conv_hidden_channels,
-                                                    'mlp_hidden_channels': mlp_hidden_channels}, index=[0])
 
         self.optimizer = torch.optim.Adam(self.training_model.parameters(), lr=learning_rate)
         self.criterion = torch.nn.MSELoss()

@@ -11,14 +11,14 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
                                 help='Type of polymers in the input data.')
 @click.option('--dftbplus-path', default=None, type=click.Path(), help='Path to DFTB+ executable.')
 @click.option('--use-example-data', is_flag=True, help='Use bundled example data (reduced_dataset.csv)')
-@click.option('--polymer-chain-size', default=2, type=int, help='Set polymer chain size (2, 3, 4) for polymer generation.')
+@click.option('--polymer-chain-size', default=2, type=int, help='Set polymer chain size (1, 2, 3, 4, ...) for polymer generation.')
 
 #GNN parameters
 @click.option('--train-gnn-prediction', is_flag=True, help='Train the GNN model to make property predictions.')
-@click.option('--batch-size', default=16, type=int, help='Training batch size.')
-@click.option('--learning-rate', default=1e-4, type=float, help='Training learning rate.')
-@click.option('--number-conv-channels', default=225, type=int, help='Number of hidden channels in the convolutional layers.')
-@click.option('--number-fc-channels', default=225, type=int, help='Number of hidden channels in the MLP layer.')
+@click.option('--batch-size', default=32, type=int, help='Training batch size.')
+@click.option('--learning-rate', default=5e-4, type=float, help='Training learning rate.')
+@click.option('--number-conv-channels', default=100, type=int, help='Number of hidden channels in the convolutional layers.')
+@click.option('--number-fc-channels', default=100, type=int, help='Number of hidden channels in the MLP layer.')
 @click.option('--prediction-target', default='static_polarizability', help='Name of the target column from input data file.')
 @click.option("--epochs", default=200, type=int, help="Number of epochs to train the model.")
 

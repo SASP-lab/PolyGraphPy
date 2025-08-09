@@ -31,6 +31,18 @@ class PreProcess():
         upper_bound = Q3 + 1.5 * IQR
         self.df = self.df[(self.df[self.target] >= lower_bound) & (self.df[self.target] <= upper_bound)].reset_index(drop=True)
 
+    def get_small_group_of_smiles_A(self):
+        df_grouped = self.df.groupby('smiles_A').count().sort_values(by='id_A').reset_index()
+        df_grouped = df_grouped[df_grouped['id_A'] >= 150]
+
+        self.df = self.df[self.df['smiles_A'].isin(df_grouped['smiles_A'])]
+
+        Q1 = self.df['static_polarizability'].quantile(0.25)
+        Q3 = self.df['static_polarizability'].quantile(0.75)
+        df_filtered = self.df[(self.df['static_polarizability'] >= Q1) & (self.df['static_polarizability'] <= Q3)].reset_index(drop=True)
+
+        self.df = df_filtered
+
     def data_standardization(self):
         self.df[self.target + '_original'] = self.df[self.target]
         self.scaler = self.scaler.fit(self.df[[self.target]])
@@ -45,11 +57,15 @@ class PreProcess():
     def extract_atoms_and_bonds_features_from_monomer_smiles(self) -> tuple[list, list]:
         print("Extracting unique features from atoms and bonds.")
 
-        smiles_vec = self.df['smiles_A'].to_list()
-        chain_vec = self.df['chain_size'].to_list()
+        df_aux = self.df.groupby(['smiles_A', 'chain_size']).count().reset_index()[['smiles_A', 'chain_size']]
+        smiles_vec = df_aux['smiles_A'].to_list()
+        chain_vec = df_aux['chain_size'].to_list()
+
         if self.polymer_type == 'copolymer':
-            smiles_vec = smiles_vec + self.df['smiles_B'].to_list()
-            chain_vec = chain_vec + self.df['chain_size'].to_list()
+            df_aux = self.df.groupby(['smiles_B', 'chain_size']).count().reset_index()[['smiles_B', 'chain_size']]
+            smiles_vec = smiles_vec + df_aux['smiles_B'].to_list()
+            chain_vec = chain_vec + df_aux['chain_size'].to_list()
+
         atoms_list = []
         bonds_list = []
 
@@ -65,11 +81,9 @@ class PreProcess():
                     'atomic_num': atom.GetAtomicNum(),
                     'degree': atom.GetDegree(),
                     'mass': atom.GetMass(),
-                    'hybridization': atom.GetHybridization(),
                     'radical_total_degree': atom.GetTotalDegree(),
                     'radical_total_valence': atom.GetTotalValence(),
                     'aromatic': int(atom.GetIsAromatic()),
-                    'n_Hs': atom.GetTotalNumHs(),
                     'formal_charge': atom.GetFormalCharge(),
                     'chain_size': chain_vec[i]
                 })
@@ -104,11 +118,9 @@ class PreProcess():
                     'atomic_num': atom.GetAtomicNum(),
                     'degree': atom.GetDegree(),
                     'mass': atom.GetMass(),
-                    'hybridization': atom.GetHybridization(),
                     'radical_total_degree': atom.GetTotalDegree(),
                     'radical_total_valence': atom.GetTotalValence(),
                     'aromatic': int(atom.GetIsAromatic()),
-                    'n_Hs': atom.GetTotalNumHs(),
                     'formal_charge': atom.GetFormalCharge(),
                     'chain_size': chain_size,
                 })
@@ -152,7 +164,7 @@ class PreProcess():
                 repeating_unit='AB',
                 num_repeating_units=1,
                 optimizer=stk.MCHammer(
-                    num_steps=10,
+                    num_steps=3,
                     target_bond_length=1.54,
                     nonbond_sigma = 0.4,
                     random_seed=None
@@ -300,6 +312,7 @@ class PreProcess():
             if self.polymer_type != 'copolymer':
                 self.prepare_monomer_input_data(atom_encoder, bond_encoder)
             else:
+                self.get_small_group_of_smiles_A()
                 self.prepare_copolymer_input_data(atom_encoder, bond_encoder)
         
         return self.df

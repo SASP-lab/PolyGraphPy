@@ -32,20 +32,20 @@ class Prediction():
             self.val_dataset.append(torch.load(f'{validation_data_path}/{i}', weights_only=False))
 
     def make_plot(self, df_result: pd.DataFrame) -> None:
-        p1 = [df_result.y.min(), df_result.y.max()]
-        p2 = [df_result.y.min(), df_result.y.max()]
+        p1 = [0, 1]
+        p2 = [0, 1]
 
         coefficients = np.polyfit(p1, p2, 1)
 
         polynomial = np.poly1d(coefficients)
-        x_axis = np.linspace(math.floor(df_result.y.min()), math.ceil(df_result.y.max()), 500)
+        x_axis = np.linspace(0, 1, 500)
         y_axis = polynomial(x_axis)
 
         fig = plt.figure()
         plt.scatter(df_result.y.values, df_result.pred.values)
         plt.plot(x_axis, y_axis, 'r')
-        plt.xlim(df_result.y.min(), df_result.y.max())
-        plt.ylim(df_result.y.min(), df_result.y.max())
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
         plt.grid(1)
         plt.xlabel("Ground Truths")
         plt.ylabel("Predictions")
