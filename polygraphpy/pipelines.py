@@ -50,7 +50,7 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, polymer_t
 def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', batch_size: int = 8, learning_rate: float = 1e-3, number_conv_channels: int = 69, 
                      number_fc_channels: int = 69, prediction_target: str = None, polymer_type: str = 'monomer', epochs: int = 200,
                      train_input_data_path: str = 'polygraphpy/data/training_input_data/', gnn_output_path: str = 'polygraphpy/data/gnn_output/',
-                     validation_data_path: str = 'polygraphpy/data/validation_data/'):
+                     validation_data_path: str = 'polygraphpy/data/validation_data/', model: str = 'gunet'):
     
     if polymer_type == 'copolymer':
         train_input_data_path = 'polygraphpy/data/training_input_data_copoly/'
@@ -68,7 +68,7 @@ def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', 
 
     # Step 2: Train GNN model for prediction
     train_engine = Train(number_conv_channels, number_fc_channels, data, learning_rate, batch_size, epochs, train_input_data_path, gnn_output_path,
-                         validation_data_path, polymer_type)
+                         validation_data_path, polymer_type, model)
     train_engine.run()
 
     # Step 3: Plot validation result and save dataframes

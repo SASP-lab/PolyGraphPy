@@ -17,10 +17,11 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
 @click.option('--train-gnn-prediction', is_flag=True, help='Train the GNN model to make property predictions.')
 @click.option('--batch-size', default=32, type=int, help='Training batch size.')
 @click.option('--learning-rate', default=5e-4, type=float, help='Training learning rate.')
-@click.option('--number-conv-channels', default=100, type=int, help='Number of hidden channels in the convolutional layers.')
-@click.option('--number-fc-channels', default=100, type=int, help='Number of hidden channels in the MLP layer.')
+@click.option('--number-conv-channels', default=150, type=int, help='Number of hidden channels in the convolutional layers.')
+@click.option('--number-fc-channels', default=150, type=int, help='Number of hidden channels in the MLP layer.')
 @click.option('--prediction-target', default='static_polarizability', help='Name of the target column from input data file.')
 @click.option("--epochs", default=200, type=int, help="Number of epochs to train the model.")
+@click.option("--prediction-model", default='gunet', type=click.Choice(['gcn', 'gunet']), help="Neural net model to train.")
 
 #Generative parameters
 @click.option('--run-generative', is_flag=True, help='Run the generative model pipeline.')
@@ -34,7 +35,7 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
 
 def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_example_data, polymer_chain_size, train_gnn_prediction, batch_size, learning_rate, 
          number_conv_channels, number_fc_channels, prediction_target, epochs, run_generative, generative_model, target_polarizability, generative_batch_size,
-         generative_learning_rate, generative_epochs, ga_population_size, ga_generations):
+         generative_learning_rate, generative_epochs, ga_population_size, ga_generations, prediction_model):
     
     """Run the PolyGraphPy DFTB+ and GNN pipelines for monomer or polymer simulations."""
 
@@ -70,7 +71,8 @@ def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_examp
                 number_fc_channels=number_fc_channels,
                 prediction_target=prediction_target,
                 polymer_type=polymer_type,
-                epochs=epochs
+                epochs=epochs,
+                model=prediction_model
             )
         else:
             print('Make sure that you provide the target for train and prediction.')
