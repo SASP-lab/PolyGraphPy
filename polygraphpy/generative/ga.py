@@ -24,7 +24,9 @@ class GaModelLoader:
         self.atom_encoder = self.preprocess.make_encoder(pd.DataFrame(atoms_list).drop_duplicates().reset_index(drop=True))
         self.bond_encoder = self.preprocess.make_encoder(pd.DataFrame(bonds_list).drop_duplicates().reset_index(drop=True))
 
-        self.model = torch.load(os.path.join(gnn_output_path, 'model_gcn.pt'), weights_only=False)
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        self.model = torch.load(os.path.join(gnn_output_path, 'model_gcn.pt'), weights_only=False, map_location=self.device)
         print('GNN model:')
         print(self.model)
 
@@ -216,22 +218,31 @@ class FragmentGA:
 
 def build_molecule(fragments):
     acrylate_core = Chem.MolFromSmiles('C=CC(=O)O*')
+
     for attempt in range(100):
         r_frags = random.sample(fragments, k=random.randint(1, 3))[:100]
+
         try:
             mol_frags = [Chem.MolFromSmiles(f, sanitize=True) for f in r_frags]
             mol_frags.append(acrylate_core)
+
             if None in mol_frags:
                 continue
+
             new_mol = BRICS.BRICSBuild(mol_frags)
+
             for mol in new_mol:
                 Chem.RemoveStereochemistry(mol)
                 smi = Chem.MolToSmiles(mol, isomericSmiles=False)
                 mol = Chem.MolFromSmiles(smi, sanitize=True)
+
                 if mol and mol.HasSubstructMatch(Chem.MolFromSmarts('C=C-C(=O)O')):
                     Chem.SanitizeMol(mol)
+
                     return smi
+                
         except Exception as e:
             print(f"Attempt {attempt + 1} failed with fragments {r_frags}: {str(e)}")
             continue
+
     return None
