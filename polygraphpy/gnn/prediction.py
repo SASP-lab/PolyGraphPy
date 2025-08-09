@@ -54,26 +54,27 @@ class Prediction():
     def run(self) -> None:
         pred = []
         y = []
-
         print('Making prediction.')
         for graph in tqdm(self.val_dataset):
             y.append(graph.y.numpy()[0])
             graph = graph.to(self.device)
-            out = self.model(graph.x, graph.edge_index, graph.edge_weight, torch.tensor(np.array([0])).to(self.device))
+            # Ensure batch tensor matches the number of nodes in graph.x
+            batch = torch.zeros(graph.x.size(0), dtype=torch.long).to(self.device)  # Single graph, all nodes assigned to index 0
+            out = self.model(graph.x, graph.edge_index, graph.edge_weight, batch)
             pred.append(out.detach().cpu().numpy()[0][0])
-            
+        
         df_result = pd.DataFrame({'y': y, 'pred': pred})
         df_result = df_result.sort_values(by='y').reset_index(drop=True)
-
         self.make_plot(df_result)
-
-        df_error = pd.DataFrame({'mape': round(mean_absolute_percentage_error(df_result.y.values,  df_result.pred.values)*100, 5),
-                                 'r2': round(r2_score(df_result.y.values, df_result.pred.values), 5),
-                                 'mse': round(mean_squared_error(df_result.y.values, df_result.pred.values), 5)}, index=[0])
         
+        df_error = pd.DataFrame({
+            'mape': round(mean_absolute_percentage_error(df_result.y.values, df_result.pred.values) * 100, 5),
+            'r2': round(r2_score(df_result.y.values, df_result.pred.values), 5),
+            'mse': round(mean_squared_error(df_result.y.values, df_result.pred.values), 5)
+        }, index=[0])
         print(df_error)
-
+        
         df_result.to_csv(f'{self.gnn_output_path}/df_results.csv')
         df_error.to_csv(f'{self.gnn_output_path}/df_error.csv')
-        
+
         print('Prediction done.')
