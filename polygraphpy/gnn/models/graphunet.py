@@ -5,7 +5,7 @@ from torch_geometric.nn import GraphUNet
 from torch_geometric.nn import global_mean_pool
 
 class GraphUNetModel(torch.nn.Module):
-    def __init__(self, input_dim: int, conv_hidden_channels: int, mlp_hidden_channels: int, depth: int = 3, pool_ratios: float = 0.5) -> None:
+    def __init__(self, input_dim: int, conv_hidden_channels: int, mlp_hidden_channels: int, depth: int = 5, pool_ratios: float = 0.5) -> None:
         super(GraphUNetModel, self).__init__()
         self.input_dim = input_dim
         self.conv_hidden_channels = conv_hidden_channels
