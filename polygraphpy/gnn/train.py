@@ -10,7 +10,8 @@ from polygraphpy.gnn.models.graphunet import GraphUNetModel
 
 class Train():
     def __init__(self, conv_hidden_channels:int, mlp_hidden_channels:int, data: pd.DataFrame, learning_rate: float, batch_size: int = 8, epochs: int = 100,
-                 train_input_data_path: str = None, gnn_output_path: str = None, validation_data_path: str = None, polymer_type: str = 'monomer') -> None:
+                 train_input_data_path: str = None, gnn_output_path: str = None, validation_data_path: str = None, polymer_type: str = 'monomer',
+                 model: str = 'gcn') -> None:
         self.training_dataset = []
         self.input_dim = 0
         self.min_val_error = 10e9
@@ -27,8 +28,10 @@ class Train():
 
         self.read_train_data(data)
 
-        #self.training_model = GCN(self.input_dim, conv_hidden_channels, mlp_hidden_channels)
-        self.training_model = GraphUNetModel(self.input_dim, conv_hidden_channels, mlp_hidden_channels)
+        if (model == 'gcn'):
+            self.training_model = GCN(self.input_dim, conv_hidden_channels, mlp_hidden_channels)
+        else:
+            self.training_model = GraphUNetModel(self.input_dim, conv_hidden_channels, mlp_hidden_channels)
         self.training_model = self.training_model.to(self.device)
 
         print('Model architecture:')
