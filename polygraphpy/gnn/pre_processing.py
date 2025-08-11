@@ -31,18 +31,6 @@ class PreProcess():
         upper_bound = Q3 + 1.5 * IQR
         self.df = self.df[(self.df[self.target] >= lower_bound) & (self.df[self.target] <= upper_bound)].reset_index(drop=True)
 
-    def get_small_group_of_smiles_A(self):
-        df_grouped = self.df.groupby('smiles_A').count().sort_values(by='id_A').reset_index()
-        df_grouped = df_grouped[df_grouped['id_A'] >= 10]
-
-        self.df = self.df[self.df['smiles_A'].isin(df_grouped['smiles_A'])]
-
-        Q1 = self.df['static_polarizability'].quantile(0.05)
-        Q3 = self.df['static_polarizability'].quantile(0.95)
-        df_filtered = self.df[(self.df['static_polarizability'] >= Q1) & (self.df['static_polarizability'] <= Q3)].reset_index(drop=True)
-
-        self.df = df_filtered
-
     def data_standardization(self):
         self.df[self.target + '_original'] = self.df[self.target]
         self.scaler = self.scaler.fit(self.df[[self.target]])
@@ -312,7 +300,6 @@ class PreProcess():
             if self.polymer_type != 'copolymer':
                 self.prepare_monomer_input_data(atom_encoder, bond_encoder)
             else:
-                self.get_small_group_of_smiles_A()
                 self.prepare_copolymer_input_data(atom_encoder, bond_encoder)
         
         return self.df
