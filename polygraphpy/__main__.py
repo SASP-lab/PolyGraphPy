@@ -26,17 +26,18 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
 #Generative parameters
 @click.option('--run-generative', is_flag=True, help='Run the generative model pipeline.')
 @click.option('--generative-model', default='gpt', type=click.Choice(['gpt', 'ga']), help='Generative model to use: GPT-based or Genetic Algorithm.')
-@click.option('--target-polarizability', default=None, type=float, help='Target scaled polarizability (0-1). If not provided, use linspace(0,1,100).')
+@click.option('--target-polarizability', default=None, type=float, help='Target scaled polarizability (0-1). If not provided, use linspace(0,1,200).')
 @click.option('--generative-batch-size', default=4, type=int, help='Batch size for GPT training.')
 @click.option('--generative-learning-rate', default=5e-5, type=float, help='Learning rate for GPT training.')
 @click.option('--generative-epochs', default=150, type=int, help='Number of epochs for GPT training.')
 @click.option('--monomers-number-per-target', default=1, type=int, help='Number of monomers for GPT generation per target value.')
+@click.option('--threshold', default=1e-1, type=int, help='Error threshold for GPT generation.')
 @click.option('--ga-population-size', default=100, type=int, help='Population size for GA.')
 @click.option('--ga-generations', default=50, type=int, help='Number of generations for GA.')
 
 def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_example_data, polymer_chain_size, train_gnn_prediction, batch_size, learning_rate, 
          number_conv_channels, number_fc_channels, prediction_target, epochs, run_generative, generative_model, target_polarizability, generative_batch_size,
-         generative_learning_rate, generative_epochs, monomers_number_per_target, ga_population_size, ga_generations, prediction_model):
+         generative_learning_rate, generative_epochs, monomers_number_per_target, threshold, ga_population_size, ga_generations, prediction_model):
     
     """Run the PolyGraphPy DFTB+ and GNN pipelines for monomer or polymer simulations."""
 
@@ -91,7 +92,8 @@ def main(run_dftb, input_csv, is_polymer, polymer_type, dftbplus_path, use_examp
                 epochs=generative_epochs,
                 target_polarizability=target_polarizability,
                 polymer_type=polymer_type,
-                monomers_number_per_target=monomers_number_per_target
+                monomers_number_per_target=monomers_number_per_target,
+                threshold=threshold,
             )
 
         else:

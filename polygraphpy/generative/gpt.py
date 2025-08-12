@@ -9,6 +9,10 @@ from torch.utils.data import Dataset, DataLoader
 import torch
 from tqdm import tqdm
 import rdkit.Chem as Chem
+from polygraphpy.gnn.pre_processing import PreProcess
+from torch_geometric.data import Data
+import pickle
+from sklearn.preprocessing import OneHotEncoder
 
 class GenerativePreprocess:
     def __init__(self, input_csv, output_path='polygraphpy/data/generative_data/'):
@@ -99,11 +103,12 @@ class GenerativeTrainer:
                 aux = total_loss
 
 class MoleculeGenerator:
-    def __init__(self, model_path, output_path, monomers_number_per_target):
+    def __init__(self, model_path, output_path, monomers_number_per_target, threshold):
         self.model_path = model_path
         self.output_path = output_path
         self.monomers_number_per_target = monomers_number_per_target
-        print(f'Generating {self.monomers_number_per_target} per target...')
+        self.threshold = threshold
+        print(f'Generating {self.monomers_number_per_target} monomers per target...')
         os.makedirs(self.output_path, exist_ok=True)
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -139,8 +144,134 @@ class MoleculeGenerator:
             print(e)
             return None
     
-    def post_processing(self):
-        pass
+    def is_mixed_neutral_smiles(self, smiles: str) -> bool:
+        mol = Chem.MolFromSmiles(smiles)
+
+        if mol is None:
+            return False  # or True if you want to discard invalid SMILES
+        
+        fragments = Chem.GetMolFrags(mol, asMols=True)
+        
+        if len(fragments) == 1:
+            return False  # single molecule, keep
+        
+        all_neutral = all(sum(atom.GetFormalCharge() for atom in frag.GetAtoms()) == 0 for frag in fragments)
+        
+        return all_neutral  # True → multiple neutral fragments → discard
+
+    def is_acrylate(self, smi):
+        acrylate_smarts = "C=C[C](=O)O"
+        acrylate_mol = Chem.MolFromSmarts(acrylate_smarts)
+        mol = Chem.MolFromSmiles(smi)
+
+        return mol.HasSubstructMatch(acrylate_mol) if mol else False
+    
+    def mol_to_data(self, smiles):
+        atoms = []
+        bonds = []
+        m1 = Chem.MolFromSmiles(smiles, sanitize=True)
+        if m1 is None:
+            print(f"Invalid SMILES: {smiles}")
+            return None
+        m1 = Chem.AddHs(m1)
+        
+        atoms = self.preprocess.get_nodes_information(m1, [], chain_size=0)
+
+        if not atoms:
+            print(f"No atoms extracted for SMILES: {smiles}")
+            return None
+        
+        df_nodes = pd.DataFrame(atoms)
+        nodes_features = pd.DataFrame(self.atom_encoder.transform(df_nodes.drop(['idx'], axis=1)).toarray())
+        x = torch.tensor(nodes_features.astype('float32').values)
+        
+        bonds = self.preprocess.get_bonds_information(m1, [])
+        if not bonds:
+            print(f"No bonds extracted for SMILES: {smiles}")
+            return None
+        df_bonds = pd.DataFrame(bonds)
+        edge_index = torch.tensor([
+            df_bonds.begin_idx.to_list() + df_bonds.end_idx.to_list(),
+            df_bonds.end_idx.to_list() + df_bonds.begin_idx.to_list()
+        ])
+        
+        edge_attrs = df_bonds[['type', 'is_conjugated', 'is_aromatic']]
+        edge_attrs = pd.concat([edge_attrs, edge_attrs.sort_index(ascending=False)])
+        edge_attr = torch.tensor(self.bond_encoder.transform(edge_attrs).toarray())
+        
+        edge_weight = torch.tensor([1.0] * edge_index.shape[1], dtype=torch.float32)
+        
+        mol_data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, edge_weight=edge_weight)
+        mol_data.validate()
+
+        return mol_data
+    
+    def load_gnn_model(self):
+        self.preprocess = PreProcess(
+            input_csv='polygraphpy/data/polarizability_data.csv',
+            train_input_data_path='prediction_test',
+            polymer_type='monomer',
+            target='static_polarizability',
+            gnn_output_path='./'
+        )
+
+        atoms_list, bonds_list = self.preprocess.extract_atoms_and_bonds_features_from_monomer_smiles()
+        self.atom_encoder = self.preprocess.make_encoder(pd.DataFrame(atoms_list).drop_duplicates().reset_index(drop=True))
+        self.bond_encoder = self.preprocess.make_encoder(pd.DataFrame(bonds_list).drop_duplicates().reset_index(drop=True))
+
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        model = torch.load('polygraphpy/data/gnn_output/model_gcn.pt', weights_only=False)
+        model = model.to(device)
+        
+        return model
+    
+    def fine_tunning_with_gnn(self, df: pd.DataFrame):
+        df_results = pd.DataFrame()
+
+        for i in df.itertuples():
+            mol_data = self.mol_to_data(i.smiles_A).to(self.device)
+
+            with torch.no_grad():
+                batch = torch.zeros(mol_data.x.size(0), dtype=torch.long).to(self.device)
+                pred = self.gnn_model(mol_data.x, mol_data.edge_index, mol_data.edge_weight, batch)
+
+            df_results = pd.concat([df_results, pd.DataFrame({'smiles_A': i.smiles_A, 
+                                                            'static_polarizability': i.static_polarizability, 
+                                                            'static_polarizability_pred': pred.cpu().numpy()[0][0]}, index=[0])]).reset_index(drop=True)
+            
+        return df_results
+    
+    def apply_error_threshold(self, df: pd.DataFrame):
+        with open(f'polygraphpy/data/generative_data/scaler.pkl', 'rb') as file:
+            loaded_encoder : OneHotEncoder = pickle.load(file)
+        
+        df['static_polarizability_original'] = loaded_encoder.inverse_transform(df['static_polarizability'].values.reshape(-1,1))
+        df['static_polarizability_pred_original'] = loaded_encoder.inverse_transform(df['static_polarizability_pred'].values.reshape(-1,1))
+
+        df['error'] = abs(df['static_polarizability_original'] - df['static_polarizability_pred_original'])/df['static_polarizability_original']
+
+        df_filtered = df[df['error'] <= self.threshold]
+
+        return df, df_filtered
+    
+    def post_processing(self, df: pd.DataFrame):
+        print('Making post processing with GNN prediction model.')
+
+        df = df.drop_duplicates(subset='smiles').reset_index(drop=True)
+        df = df.rename(columns={'smiles': 'smiles_A'})
+        df['chain_size'] = 0
+        df['id_A'] = df.index
+
+        df_filtered = df[~df["smiles_A"].apply(self.is_mixed_neutral_smiles)].reset_index(drop=True)
+        df_filtered["is_acrylate"] = df_filtered["smiles_A"].apply(self.is_acrylate)
+
+        self.gnn_model = self.load_gnn_model()
+
+        df = self.fine_tunning_with_gnn(df_filtered)
+        df = self.apply_error_threshold(df)
+
+        return df
 
     def run(self, targets):
         data = []
@@ -152,7 +283,16 @@ class MoleculeGenerator:
                     data.append({'smiles': smiles, 'static_polarizability': i})
 
         df = pd.DataFrame(data)
-        df = df.drop_duplicates(subset='smiles').reset_index(drop=True)
+        print(f'Original data size: {len(df)}')
+
+        df, df_filtered = self.post_processing(df)
+        print(f'Filtered data size: {len(df_filtered)}')
+
         df.to_csv(os.path.join(self.output_path, 'generated_molecules.csv'), index=False)
+
+        if len(df_filtered) == 0:
+            print('Filtered dataframe has 0 length. Consider change your threshold.')
+        else:
+            df_filtered.to_csv(os.path.join(self.output_path, 'generated_molecules_filtered.csv'), index=False)
         
         return df
