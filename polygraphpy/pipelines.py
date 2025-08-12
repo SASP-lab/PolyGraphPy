@@ -9,8 +9,8 @@ from polygraphpy.dftb.polarizability_trace import PolarizabilityTrace
 from polygraphpy.gnn.pre_processing import PreProcess
 from polygraphpy.gnn.train import Train
 from polygraphpy.gnn.prediction import Prediction
-from polygraphpy.generative.gpt import GenerativePreprocess, SelfiesDataset, GenerativeTrainer, MoleculeGenerator
-from polygraphpy.generative.ga import GaModelLoader, FragmentGA, build_molecule
+from polygraphpy.generative.gpt import GenerativePreprocess, GenerativeTrainer, MoleculeGenerator
+from polygraphpy.generative.ga import GaModelLoader, FragmentGA
 from tqdm import tqdm
 
 def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, polymer_type: str = 'homopoly',
@@ -75,7 +75,8 @@ def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', 
     prediction_engine = Prediction(validation_data_path, gnn_output_path, polymer_type)
     prediction_engine.run()
 
-def run_generative_pipeline(input_csv='polygraphpy/data/polarizability_data.csv', batch_size=4, learning_rate=5e-5, epochs=100, target_polarizability=None, polymer_type='monomer'):
+def run_generative_pipeline(input_csv='polygraphpy/data/polarizability_data.csv', batch_size=4, learning_rate=5e-5, epochs=100, 
+                            target_polarizability=None, polymer_type='monomer', monomers_number_per_target=1):
     if polymer_type != 'monomer':
         print("GPT generative model currently supports only monomer.")
         return
@@ -97,7 +98,7 @@ def run_generative_pipeline(input_csv='polygraphpy/data/polarizability_data.csv'
     prep.run()
     trainer = GenerativeTrainer(generative_data_path, model_path, batch_size, learning_rate, epochs)
     trainer.run()
-    generator = MoleculeGenerator(model_path, output_path)
+    generator = MoleculeGenerator(model_path, output_path, monomers_number_per_target)
     generator.run(targets)
 
 def run_generative_ga_pipeline(input_csv='polygraphpy/data/polarizability_data.csv', prediction_target=None, polymer_type='monomer',

@@ -95,25 +95,26 @@ class GenerativeTrainer:
             print(f"Epoch {epoch+1}, Loss: {total_loss:.5f}")
 
             if total_loss < aux:
-                torch.save(model, os.path.join(self.model_output_path, 'gpt_selfies.pt'))
+                torch.save(model, f'{self.model_output_path}gpt_selfies.pt')
                 aux = total_loss
 
 class MoleculeGenerator:
-    def __init__(self, model_path, output_path):
+    def __init__(self, model_path, output_path, monomers_number_per_target):
         self.model_path = model_path
         self.output_path = output_path
+        self.monomers_number_per_target = monomers_number_per_target
+        print(f'Generating {self.monomers_number_per_target} per target...')
         os.makedirs(self.output_path, exist_ok=True)
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
+        self.tokenizer = AutoTokenizer.from_pretrained('gpt2')
+        self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 
-        self.model = AutoModelForCausalLM.from_pretrained('gpt2')
-        self.model.resize_token_embeddings(len(self.tokenizer))
-        self.model = torch.load(os.path.join(self.model_path, 'gpt_selfies.pt'))
+        self.model = torch.load(f'{self.model_path}gpt_selfies.pt', weights_only=False)
         self.model = self.model.to(self.device)
         self.model.eval()
 
-    def generate_one(self, pol_val, max_len=759):
+    def generate_one(self, pol_val, max_len=1000):
         try:
             prompt = f"polarizability: {pol_val} selfies:"
             inputs = self.tokenizer(prompt, return_tensors='pt').to(self.device)
@@ -137,16 +138,21 @@ class MoleculeGenerator:
         except Exception as e:
             print(e)
             return None
+    
+    def post_processing(self):
+        pass
 
     def run(self, targets):
         data = []
 
         for i in tqdm(targets):
-            smiles = self.generate_one(i)
-            if smiles:
-                data.append({'smiles': smiles, 'static_polarizability': i})
+            for j in range(self.monomers_number_per_target):
+                smiles = self.generate_one(i)
+                if smiles:
+                    data.append({'smiles': smiles, 'static_polarizability': i})
 
         df = pd.DataFrame(data)
+        df = df.drop_duplicates(subset='smiles').reset_index(drop=True)
         df.to_csv(os.path.join(self.output_path, 'generated_molecules.csv'), index=False)
         
         return df
