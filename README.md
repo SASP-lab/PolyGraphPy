@@ -1,4 +1,7 @@
 ## Installation
+
+Before installing and running this project, ensure that [DFTB+](https://www.dftbplus.org/) is installed on your system, as it is required for all quantum mechanical simulations. After installation, find the `dftb+` executable. This path will be required by the package to run simulations.
+
 Install PyTorch and PyTorch Geometric dependencies first:
 ```bash
 pip install torch>=2.8.0
