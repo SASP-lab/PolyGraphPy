@@ -39,127 +39,127 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
 
 @click.command()
 
-#DFTB parameters
+# DFTB parameters
 @click.option('--run-dftb', 
               is_flag=True, 
-              help='Run the DFTB+ to make simulate monomers and polymers.')
+              help='Run the DFTB+ simulation pipeline to generate molecular geometries and compute properties.')
 
 @click.option('--input-csv', 
               type=click.Path(exists=True), 
               default='polygraphpy/data/original_dataset.csv', 
-              help='Path to input CSV file.')
+              help='Path to the input CSV file containing SMILES strings. Required unless --use-example-data is set.')
 
 @click.option('--is-polymer', 
               is_flag=True, 
-              help='Generate polymers instead of monomers.')
+              help='Flag to indicate that the input molecules are polymers, not monomers.')
 
 @click.option('--polymer-type', 
               default='monomer', 
               type=click.Choice(['monomer', 'homopolymer', 'copolymer']), 
-              help='Type of polymers in the input data.')
+              help='Specifies the type of polymer to generate (monomer, homopolymer, or copolymer). Here we consider monomer as polymer with chain_size = 0.')
 
 @click.option('--dftbplus-path', 
               default=None, 
               type=click.Path(), 
-              help='Path to DFTB+ executable.')
+              help='Path to the DFTB+ executable. Must be provided if it is not in the system PATH.')
 
 @click.option('--use-example-data', 
               is_flag=True, 
-              help='Use bundled example data (reduced_dataset.csv)')
+              help='Use a bundled, small example dataset (`reduced_dataset.csv`) for testing purposes.')
 
 @click.option('--polymer-chain-size', 
               default=2, 
               type=int, 
-              help='Set polymer chain size (1, 2, 3, 4, ...) for polymer generation.')
+              help='Sets the number of repeating monomer units for polymer generation.')
 
-#GNN parameters
+# GNN parameters
 @click.option('--train-gnn-prediction', 
               is_flag=True, 
-              help='Train the GNN model to make property predictions.')
+              help='Run the GNN pipeline to train a model for property prediction.')
 
 @click.option('--batch-size', 
               default=32, 
               type=int, 
-              help='Training batch size.')
+              help='The batch size to be used during GNN model training.')
 
 @click.option('--learning-rate', 
               default=5e-4, 
               type=float, 
-              help='Training learning rate.')
+              help='The learning rate for the GNN model optimizer.')
 
 @click.option('--number-conv-channels', 
               default=150, 
               type=int, 
-              help='Number of hidden channels in the convolutional layers.')
+              help='The number of hidden channels in the GCN convolutional layers.')
 
 @click.option('--number-fc-channels', 
               default=150, 
               type=int, 
-              help='Number of hidden channels in the MLP layer.')
+              help='The number of hidden channels in the GNNs fully connected (MLP) layers.')
 
 @click.option('--prediction-target', 
               default='static_polarizability', 
-              help='Name of the target column from input data file.')
+              help='The name of the column in the input data to be used as the prediction target.')
 
 @click.option("--epochs", 
               default=200, 
               type=int, 
-              help="Number of epochs to train the model.")
+              help="The number of epochs to train the GNN model.")
 
 @click.option("--prediction-model", 
               default='gunet', 
               type=click.Choice(['gcn', 'gunet']), 
-              help="Neural net model to train.")
+              help="Specifies the GNN model architecture to be trained ('gcn' or 'gunet').")
 
-#Generative parameters
+# Generative parameters
 @click.option('--run-generative', 
               is_flag=True, 
-              help='Run the generative model pipeline.')
+              help='Run the generative model pipeline to design new molecules with desired properties.')
 
 @click.option('--generative-model', 
               default='gpt', 
               type=click.Choice(['gpt', 'ga']), 
-              help='Generative model to use: GPT-based or Genetic Algorithm.')
+              help='Specifies which generative model to use: a GPT-based sequence model or a Genetic Algorithm (GA).')
 
 @click.option('--target-polarizability', 
               default=None, 
               type=float, 
-              help='Target scaled polarizability (0-1). If not provided, use linspace(0,1,200).')
+              help='A specific scaled polarizability value (between 0 and 1) to target for molecule generation. If not specified, a range of values is targeted.')
 
 @click.option('--generative-batch-size', 
               default=4, 
               type=int, 
-              help='Batch size for GPT training.')
+              help='The batch size for training the GPT generative model.')
 
 @click.option('--generative-learning-rate', 
               default=5e-5, 
               type=float,
-              help='Learning rate for GPT training.')
+              help='The learning rate for the GPT generative model.')
 
 @click.option('--generative-epochs', 
               default=150, 
               type=int, 
-              help='Number of epochs for GPT training.')
+              help='The number of epochs to train the GPT generative model.')
 
 @click.option('--monomers-number-per-target', 
               default=1, 
               type=int, 
-              help='Number of monomers for GPT generation per target value.')
+              help='The number of monomers to generate for each target polarizability value (for the GPT model).')
 
 @click.option('--threshold', 
-              default=1e-1, 
+              default=3e-1, 
               type=float, 
-              help='Error threshold for GPT generation.')
+              help='The acceptable error threshold for the generated molecule property prediction (for the GPT model).')
 
 @click.option('--ga-population-size', 
               default=100, 
               type=int, 
-              help='Population size for GA.')
+              help='The population size for the Genetic Algorithm.')
 
 @click.option('--ga-generations', 
               default=50, 
               type=int, 
-              help='Number of generations for GA.')
+              help='The number of generations to run the Genetic Algorithm for.')
 
 def main(run_dftb, 
          input_csv, 
@@ -187,80 +187,63 @@ def main(run_dftb,
          ga_generations, 
          prediction_model):
     
-    """
-    Main CLI entry point for PolyGraphPy.
+    """Main CLI entry point for the PolyGraphPy package.
 
-    This function orchestrates three major workflows:
+    This function provides a command-line interface to execute the different
+    pipelines of the PolyGraphPy package, including DFTB+ simulations, GNN
+    property prediction, and generative molecular design.
 
-    1. **DFTB+ simulation pipeline**:
-       Generates `.xyz` geometries and runs DFTB+ calculations
-       for monomers, homopolymers, or copolymers.
-
-    2. **Graph Neural Network (GNN) pipeline**:
-       Trains a GNN model to predict molecular properties from
-       the generated dataset.
-
-    3. **Generative model pipeline**:
-       Designs new monomers with target polarizabilities using
-       either a GPT-based sequence model or a Genetic Algorithm.
-
-    Parameters
-    ----------
-    run_dftb : bool
-        Whether to run the DFTB+ simulation pipeline.
-    input_csv : str or None
-        Path to the input dataset CSV file.
-    is_polymer : bool
-        Whether to treat the input molecules as polymers.
-    polymer_type : {'monomer', 'homopolymer', 'copolymer'}
-        Type of polymer to simulate.
-    dftbplus_path : str or None
-        Path to the DFTB+ executable.
-    use_example_data : bool
-        Whether to use the bundled example dataset.
-    polymer_chain_size : int
-        Number of repeating units in the polymer chain.
-    train_gnn_prediction : bool
-        Whether to train the GNN prediction model.
-    batch_size : int
-        Batch size for GNN training.
-    learning_rate : float
-        Learning rate for GNN training.
-    number_conv_channels : int
-        Number of hidden channels in the GNN convolutional layers.
-    number_fc_channels : int
-        Number of hidden channels in the fully connected layers.
-    prediction_target : str
-        Target column name for prediction.
-    epochs : int
-        Number of GNN training epochs.
-    run_generative : bool
-        Whether to run the generative model pipeline.
-    generative_model : {'gpt', 'ga'}
-        Type of generative model to use.
-    target_polarizability : float or None
-        Desired scaled polarizability for generated molecules.
-    generative_batch_size : int
-        Batch size for GPT training.
-    generative_learning_rate : float
-        Learning rate for GPT training.
-    generative_epochs : int
-        Number of GPT training epochs.
-    monomers_number_per_target : int
-        Number of monomers to generate per polarizability target.
-    threshold : float
-        Acceptable prediction error threshold for generation.
-    ga_population_size : int
-        Population size for Genetic Algorithm.
-    ga_generations : int
-        Number of generations for Genetic Algorithm.
-    prediction_model : {'gcn', 'gunet'}
-        Neural net model architecture for GNN.
-
-    Raises
-    ------
-    click.UsageError
-        If both `--input-csv` and `--use-example-data` are provided.
+    :param run_dftb: Flag to run the DFTB+ simulation pipeline.
+    :type run_dftb: bool
+    :param input_csv: Path to the input CSV file.
+    :type input_csv: str
+    :param is_polymer: Flag to indicate polymer generation.
+    :type is_polymer: bool
+    :param polymer_type: Type of polymer to simulate.
+    :type polymer_type: str
+    :param dftbplus_path: Path to the DFTB+ executable.
+    :type dftbplus_path: str, optional
+    :param use_example_data: Flag to use the bundled example data.
+    :type use_example_data: bool
+    :param polymer_chain_size: Number of units in the polymer chain.
+    :type polymer_chain_size: int
+    :param train_gnn_prediction: Flag to train the GNN prediction model.
+    :type train_gnn_prediction: bool
+    :param batch_size: Batch size for GNN training.
+    :type batch_size: int
+    :param learning_rate: Learning rate for GNN training.
+    :type learning_rate: float
+    :param number_conv_channels: Number of hidden channels in GNN conv layers.
+    :type number_conv_channels: int
+    :param number_fc_channels: Number of hidden channels in GNN FC layers.
+    :type number_fc_channels: int
+    :param prediction_target: Name of the target column for prediction.
+    :type prediction_target: str
+    :param epochs: Number of GNN training epochs.
+    :type epochs: int
+    :param run_generative: Flag to run the generative model pipeline.
+    :type run_generative: bool
+    :param generative_model: The generative model to use ('gpt' or 'ga').
+    :type generative_model: str
+    :param target_polarizability: The target polarizability for generation.
+    :type target_polarizability: float, optional
+    :param generative_batch_size: Batch size for GPT training.
+    :type generative_batch_size: int
+    :param generative_learning_rate: Learning rate for GPT training.
+    :type generative_learning_rate: float
+    :param generative_epochs: Number of epochs for GPT training.
+    :type generative_epochs: int
+    :param monomers_number_per_target: Number of monomers to generate per target value.
+    :type monomers_number_per_target: int
+    :param threshold: Error threshold for GPT generation.
+    :type threshold: float
+    :param ga_population_size: Population size for the Genetic Algorithm.
+    :type ga_population_size: int
+    :param ga_generations: Number of generations for the Genetic Algorithm.
+    :type ga_generations: int
+    :param prediction_model: The GNN model architecture to use.
+    :type prediction_model: str
+    :raises click.UsageError: If both `input_csv` and `use_example_data` are provided.
     """
 
     if input_csv and use_example_data:
