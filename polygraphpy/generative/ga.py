@@ -1,7 +1,18 @@
+"""
+polygraphpy.generative.ga
+=========================
+
+This module implements a genetic algorithm for the generative design of
+molecules, specifically focusing on polymer monomers. The algorithm uses
+molecular fragments to build new structures, and a pre-trained Graph Neural
+Network (GNN) model to evaluate the fitness of each generated molecule
+based on a target property. This allows for the iterative generation and
+optimization of novel molecular structures with desired properties.
+"""
+
 import pandas as pd
 import torch
 import random
-import numpy as np
 import os
 from polygraphpy.gnn.pre_processing import PreProcess
 from rdkit import Chem
@@ -12,8 +23,26 @@ from joblib import Parallel, delayed
 from tqdm import tqdm
 
 class GaModelLoader:
-    def __init__(self, input_csv, gnn_output_path, train_input_data_path, polymer_type, prediction_target):
+    """Loads and prepares all necessary components for the genetic algorithm.
 
+    This includes a pre-trained GNN model, the pre-processing pipeline from
+    the `gnn` module, and the one-hot encoders for atomic and bond features.
+    These components are essential for converting molecular structures into
+    a format the GNN can understand and for evaluating molecular properties.
+
+    :param input_csv: Path to the input CSV file containing molecular data.
+    :type input_csv: str
+    :param gnn_output_path: Directory where the trained GNN model is located.
+    :type gnn_output_path: str
+    :param train_input_data_path: Directory for temporary training data.
+    :type train_input_data_path: str
+    :param polymer_type: The type of polymer being processed (e.g., 'monomer').
+    :type polymer_type: str
+    :param prediction_target: The target property column name in the CSV.
+    :type prediction_target: str
+    """
+    def __init__(self, input_csv, gnn_output_path, train_input_data_path, polymer_type, prediction_target):
+        """Initializes the loader by pre-processing data and loading the GNN model."""
         self.preprocess = PreProcess(input_csv=input_csv, train_input_data_path=train_input_data_path,
                                      polymer_type=polymer_type, target=prediction_target, gnn_output_path=gnn_output_path)
         
@@ -31,11 +60,41 @@ class GaModelLoader:
         print(self.model)
 
     def get_components(self):
+        """Returns the loaded components needed by the genetic algorithm.
+
+        :return: A tuple containing the GNN model, pre-processor, atom encoder, and bond encoder.
+        :rtype: tuple
+        """
         return self.model, self.preprocess, self.atom_encoder, self.bond_encoder
 
 class FragmentGA:
+    """Manages the genetic algorithm for molecular design using fragments.
+
+    The algorithm starts with an initial population of molecules, iteratively
+    selects the fittest individuals, uses their fragments for crossover, and
+    generates a new population. The fitness of each molecule is determined by
+    how closely its GNN-predicted property matches a specified target value.
+
+    :param csv_path: Path to the input CSV file with molecular data.
+    :type csv_path: str
+    :param model: The pre-trained GNN model for property prediction.
+    :type model: torch.nn.Module
+    :param preprocess: The pre-processing utility instance.
+    :type preprocess: PreProcess
+    :param atom_encoder: The fitted OneHotEncoder for atom features.
+    :type atom_encoder: OneHotEncoder
+    :param bond_encoder: The fitted OneHotEncoder for bond features.
+    :type bond_encoder: OneHotEncoder
+    :param population_size: The number of individuals in each generation. Defaults to 30.
+    :type population_size: int, optional
+    :param prediction_target: The name of the target property column. Defaults to 'static_polarizability'.
+    :type prediction_target: str, optional
+    :param target_polarizability: The desired target property value (scaled). Defaults to 0.43.
+    :type target_polarizability: float, optional
+    """
     def __init__(self, csv_path, model, preprocess, atom_encoder, bond_encoder, population_size=30, 
                  prediction_target='static_polarizability', target_polarizability=0.43):
+        """Initializes the GA with model, data, and parameters."""
         
         self.df = pd.read_csv(csv_path)
         self.df = self.df[self.df['chain_size'] == 0]
@@ -58,6 +117,7 @@ class FragmentGA:
         self.device = next(model.parameters()).device
 
     def _pre_process(self):
+        """Filters the dataset based on target value and molecule size."""
         scaler = MinMaxScaler()
         self.df['target_scaled'] = scaler.fit_transform(self.df[self.target_column].values.reshape(-1,1))
 
@@ -78,6 +138,7 @@ class FragmentGA:
         print(f'Datsaset size after filtering process: {len(self.df)}')
 
     def _extract_fragments(self):
+        """Extracts and filters molecular fragments from the pre-processed dataset."""
         all_frags = set()
 
         acrylate_core = Chem.MolFromSmarts('C=C-C(=O)O-[*]')
@@ -102,6 +163,13 @@ class FragmentGA:
         return fragments
 
     def _mol_to_data(self, smiles):
+        """Converts a SMILES string into a PyTorch Geometric `Data` object for GNN prediction.
+
+        :param smiles: The SMILES string of the molecule.
+        :type smiles: str
+        :return: A `Data` object or None if the conversion fails.
+        :rtype: Data or None
+        """
         try:
             atoms = []
             bonds = []
@@ -151,6 +219,18 @@ class FragmentGA:
             return None
 
     def _evaluate_fitness_batch(self, smiles_list, target_polarizability):
+        """Calculates the fitness of a batch of molecules based on GNN predictions.
+
+        The fitness score is a negative absolute difference between the predicted
+        and target polarizability, so that a higher score indicates a better match.
+
+        :param smiles_list: A list of SMILES strings to evaluate.
+        :type smiles_list: list
+        :param target_polarizability: The target polarizability value.
+        :type target_polarizability: float
+        :return: A list of tuples, each containing a SMILES string and its fitness score.
+        :rtype: list
+        """
         data_list = []
         valid_smiles = []
 
@@ -171,6 +251,24 @@ class FragmentGA:
         return list(zip(valid_smiles, scores)) + [(smi, -1.0) for smi in smiles_list if smi not in valid_smiles]
 
     def run_parallel(self, generations=10, target_polarizability=0.555):
+        """Runs the main genetic algorithm loop in parallel.
+
+        The process involves:
+        1.  Generating an initial population of molecules from fragments.
+        2.  Iterating through generations:
+            a.  Evaluating the fitness of the current population.
+            b.  Selecting the top-performing individuals.
+            c.  Extracting new fragments from the top individuals for crossover.
+            d.  Creating a new population by combining these fragments.
+        3.  Returns the fitness scores of the final population.
+
+        :param generations: The number of generations to run the algorithm for. Defaults to 10.
+        :type generations: int, optional
+        :param target_polarizability: The target polarizability value for fitness evaluation. Defaults to 0.555.
+        :type target_polarizability: float, optional
+        :return: A list of tuples containing the final population's SMILES strings and their fitness scores.
+        :rtype: list
+        """
         print("Generating initial population...")
         population = Parallel(n_jobs=-1, backend='loky')(delayed(build_molecule)(self.fragments) for _ in tqdm(range(self.population_size)))
         population = [p for p in population if p is not None]
@@ -217,6 +315,18 @@ class FragmentGA:
         return fitness_scores
 
 def build_molecule(fragments):
+    """Builds a new molecule by randomly combining a set of molecular fragments.
+
+    It uses the BRICS algorithm to recombine fragments, ensuring that the
+    resulting molecule is chemically plausible. It also checks for the
+    presence of an acrylate core.
+
+    :param fragments: A list of SMILES strings of molecular fragments.
+    :type fragments: list
+    :return: A valid SMILES string of a newly built molecule or None if
+             the process fails after several attempts.
+    :rtype: str or None
+    """
     acrylate_core = Chem.MolFromSmiles('C=CC(=O)O*')
 
     for attempt in range(100):
