@@ -53,13 +53,12 @@ class DFTBSimulation(Simulator):
         self.log_file = log_file
         self.processes = processes
         
-        # Set OMP_NUM_THREADS environment variable to avoid conflicts with multiprocessing
+        # Set OMP_NUM_THREADS environment variable
         os.environ['OMP_NUM_THREADS'] = '1'
+        os.environ['DFTBPLUS_PATH'] = dftbplus_path
         
         # Find and set DFTB+ executable path
         self.dftbplus_cmd = self._find_dftbplus(dftbplus_path)
-        # Set DFTBPLUS_PATH environment variable for DFTB+ itself if needed
-        os.environ['DFTBPLUS_PATH'] = os.path.dirname(self.dftbplus_cmd[0])
     
     def _find_dftbplus(self, dftbplus_path: str = None) -> list:
         """Locates the DFTB+ executable.
