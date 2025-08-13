@@ -15,7 +15,29 @@ from tqdm import tqdm
 
 def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, polymer_type: str = 'homopoly',
                       dftbplus_path: str = None, use_example_data: bool = False, polymer_chain_size: int = 2):
-    """Run the full DFTB+ pipeline."""
+    """Run the full DFTB+ pipeline to compute polarizability traces.
+
+    This function automates the process of generating molecular geometries, creating
+    DFTB+ input files, running simulations, and computing polarizability traces from
+    the results. It can process both monomer and polymer molecules.
+
+    :param input_csv: Path to the input CSV file containing SMILES strings.
+                      If not provided, `use_example_data` must be True.
+    :type input_csv: str, optional
+    :param is_polymer: Flag to indicate if the molecules are polymers. Defaults to False.
+    :type is_polymer: bool, optional
+    :param polymer_type: The type of polymer ('homopoly' or 'copolymer'). Defaults to 'homopoly'.
+    :type polymer_type: str, optional
+    :param dftbplus_path: Path to the DFTB+ executable. Must be provided if not in the system's PATH.
+    :type dftbplus_path: str, optional
+    :param use_example_data: Use a built-in example dataset. Overrides `input_csv`. Defaults to False.
+    :type use_example_data: bool, optional
+    :param polymer_chain_size: The number of monomer units in a polymer chain. Defaults to 2.
+    :type polymer_chain_size: int, optional
+    :raises ValueError: If `input_csv` is not provided and `use_example_data` is False.
+    :return: A list of computed polarizability traces.
+    :rtype: list
+    """
     # Step 1: Generate .xyz files
     if use_example_data:
         with resources.path("polygraphpy.data", "reduced_dataset.csv") as csv_path:
@@ -51,6 +73,38 @@ def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', 
                      number_fc_channels: int = 69, prediction_target: str = None, polymer_type: str = 'monomer', epochs: int = 200,
                      train_input_data_path: str = 'polygraphpy/data/training_input_data/', gnn_output_path: str = 'polygraphpy/data/gnn_output/',
                      validation_data_path: str = 'polygraphpy/data/validation_data/', model: str = 'gunet'):
+    """Run the Graph Neural Network (GNN) pipeline for property prediction.
+
+    This function orchestrates the pre-processing of data, training of a GNN model,
+    and making predictions on a validation set. It supports both monomer and copolymer types.
+
+    :param input_csv: Path to the input CSV file containing SMILES and properties.
+    :type input_csv: str, optional
+    :param batch_size: The number of graphs in each training batch. Defaults to 8.
+    :type batch_size: int, optional
+    :param learning_rate: The learning rate for the optimizer. Defaults to 1e-3.
+    :type learning_rate: float, optional
+    :param number_conv_channels: The number of channels in the GNN's convolutional layers. Defaults to 69.
+    :type number_conv_channels: int, optional
+    :param number_fc_channels: The number of channels in the GNN's fully connected layers. Defaults to 69.
+    :type number_fc_channels: int
+    :param prediction_target: The column name of the property to be predicted.
+    :type prediction_target: str
+    :param polymer_type: The type of polymer ('monomer' or 'copolymer'). Defaults to 'monomer'.
+    :type polymer_type: str, optional
+    :param epochs: The number of training epochs. Defaults to 200.
+    :type epochs: int, optional
+    :param train_input_data_path: Directory for storing pre-processed training data.
+    :type train_input_data_path: str, optional
+    :param gnn_output_path: Directory for saving the trained model and output data.
+    :type gnn_output_path: str, optional
+    :param validation_data_path: Directory for storing validation data.
+    :type validation_data_path: str, optional
+    :param model: The GNN model architecture to use ('gunet' or other options). Defaults to 'gunet'.
+    :type model: str, optional
+    :return: None
+    :rtype: None
+    """
     
     if polymer_type == 'copolymer':
         train_input_data_path = 'polygraphpy/data/training_input_data_copoly/'
@@ -77,6 +131,32 @@ def run_gnn_pipeline(input_csv: str = 'polygraph/data/polarizability_data.csv', 
 
 def run_generative_pipeline(input_csv='polygraphpy/data/polarizability_data.csv', batch_size=4, learning_rate=5e-5, epochs=100, 
                             target_polarizability=None, polymer_type='monomer', monomers_number_per_target=1, threshold=1e-2):
+    """Run the GPT-based generative pipeline to design new molecules.
+
+    This pipeline uses a GPT model to generate novel molecules with desired properties,
+    specifically targeting a particular polarizability value.
+
+    :param input_csv: Path to the input CSV file containing SMILES and polarizability data.
+    :type input_csv: str, optional
+    :param batch_size: The number of examples in each training batch for the GPT model. Defaults to 4.
+    :type batch_size: int, optional
+    :param learning_rate: The learning rate for the GPT model's optimizer. Defaults to 5e-5.
+    :type learning_rate: float, optional
+    :param epochs: The number of training epochs for the GPT model. Defaults to 100.
+    :type epochs: int, optional
+    :param target_polarizability: The specific polarizability value to target for generation.
+                                  If None, a range of values will be targeted.
+    :type target_polarizability: float, optional
+    :param polymer_type: The type of molecule ('monomer' or 'copolymer').
+                         Currently, only 'monomer' is supported. Defaults to 'monomer'.
+    :type polymer_type: str, optional
+    :param monomers_number_per_target: The number of molecules to generate for each target polarizability.
+    :type monomers_number_per_target: int, optional
+    :param threshold: The acceptable error margin for generated polarizability values.
+    :type threshold: float, optional
+    :return: None
+    :rtype: None
+    """
     if polymer_type != 'monomer':
         print("GPT generative model currently supports only monomer.")
         return
@@ -103,6 +183,28 @@ def run_generative_pipeline(input_csv='polygraphpy/data/polarizability_data.csv'
 
 def run_generative_ga_pipeline(input_csv='polygraphpy/data/polarizability_data.csv', prediction_target=None, polymer_type='monomer',
                                target_polarizability=None, population_size=100, generations=50):
+    """Run the Genetic Algorithm (GA) based generative pipeline for molecule design.
+
+    This function utilizes a genetic algorithm to evolve new molecules that have a
+    specific target property, using a pre-trained GNN model for fitness evaluation.
+
+    :param input_csv: Path to the input CSV file with SMILES and properties.
+    :type input_csv: str, optional
+    :param prediction_target: The column name of the property to target during generation.
+    :type prediction_target: str
+    :param polymer_type: The type of molecule ('monomer' or 'copolymer').
+                         Currently, only 'monomer' is supported. Defaults to 'monomer'.
+    :type polymer_type: str, optional
+    :param target_polarizability: The specific polarizability value to aim for.
+                                  If None, a range of values will be targeted.
+    :type target_polarizability: float, optional
+    :param population_size: The number of molecules in each GA generation. Defaults to 100.
+    :type population_size: int, optional
+    :param generations: The number of generations to run the GA for. Defaults to 50.
+    :type generations: int, optional
+    :return: None
+    :rtype: None
+    """
     if polymer_type != 'monomer':
         print("GA generative model currently supports only monomer.")
         return
