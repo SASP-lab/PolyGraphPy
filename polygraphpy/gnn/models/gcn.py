@@ -44,6 +44,6 @@ class GCN(torch.nn.Module):
         h = self.lin3(h)
         h = h.tanh()
 
-        h = self.output(h)
+        h = torch.abs(self.output(h))
 
         return h
