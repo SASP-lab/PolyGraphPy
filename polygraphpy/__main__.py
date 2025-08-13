@@ -246,11 +246,11 @@ def main(run_dftb,
     :raises click.UsageError: If both `input_csv` and `use_example_data` are provided.
     """
 
-    if input_csv and use_example_data:
-        raise click.UsageError("Cannot use --input-csv with --use-example-data")
-
     if use_example_data:
         input_csv = None
+
+    if input_csv and use_example_data:
+        raise click.UsageError("Cannot use --input-csv with --use-example-data")
     
     if run_dftb:
         run_dftb_pipeline(
