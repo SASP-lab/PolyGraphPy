@@ -12,6 +12,7 @@ from polygraphpy.gnn.prediction import Prediction
 from polygraphpy.generative.gpt import GenerativePreprocess, GenerativeTrainer, MoleculeGenerator
 from polygraphpy.generative.ga import GaModelLoader, FragmentGA
 from tqdm import tqdm
+from sklearn.preprocessing import MinMaxScaler
 
 def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, polymer_type: str = 'homopoly',
                       dftbplus_path: str = None, use_example_data: bool = False, polymer_chain_size: int = 2):
@@ -182,7 +183,7 @@ def run_generative_pipeline(input_csv='polygraphpy/data/polarizability_data.csv'
     generator.run(targets)
 
 def run_generative_ga_pipeline(input_csv='polygraphpy/data/polarizability_data.csv', prediction_target=None, polymer_type='monomer',
-                               target_polarizability=None, population_size=100, generations=50):
+                               target_polarizability=None, population_size=100, generations=50, target_column='static_polarizability'):
     """Run the Genetic Algorithm (GA) based generative pipeline for molecule design.
 
     This function utilizes a genetic algorithm to evolve new molecules that have a
@@ -218,8 +219,16 @@ def run_generative_ga_pipeline(input_csv='polygraphpy/data/polarizability_data.c
     loader = GaModelLoader(input_csv, gnn_output_path, train_input_data_path, polymer_type, prediction_target)
     model, preprocess, atom_encoder, bond_encoder = loader.get_components()
 
+    df = pd.read_csv(input_csv)
+    df = df[df['chain_size'] == 0]
+
+    scaler = MinMaxScaler()
+    df['target_scaled'] = scaler.fit_transform(df[target_column].values.reshape(-1,1))
+
     if target_polarizability is None:
-        targets = np.linspace(0, 1, 100)
+        Q1 = df['target_scaled'].quantile(0.25)
+        Q3 = df['target_scaled'].quantile(0.75)
+        targets = np.linspace(Q1, Q3, 100)
     else:
         targets = [target_polarizability]
 
