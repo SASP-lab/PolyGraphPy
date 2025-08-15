@@ -99,6 +99,8 @@ class FragmentGA:
         self.df = pd.read_csv(csv_path)
         self.df = self.df[self.df['chain_size'] == 0]
         self.target_value = target_polarizability
+        if (self.target_value) == 0:
+            self.target_value = 0.01
         self.target_column = prediction_target
 
         self._pre_process()
@@ -132,8 +134,8 @@ class FragmentGA:
         self.df['number_of_atoms'] = atoms_number
 
         print(f'Datsaset original size: {len(self.df)}')
-        self.df = self.df[self.target_value <= self.df['target_scaled']*1.20].reset_index(drop=True)
-        self.df = self.df[self.target_value >= self.df['target_scaled']*0.80].reset_index(drop=True)
+        self.df = self.df[self.target_value <= self.df['target_scaled']*1.40].reset_index(drop=True)
+        self.df = self.df[self.target_value >= self.df['target_scaled']*0.60].reset_index(drop=True)
         self.df = self.df[self.df['number_of_atoms'] <= 40].reset_index(drop=True)
         print(f'Datsaset size after filtering process: {len(self.df)}')
 
