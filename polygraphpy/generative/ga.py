@@ -110,6 +110,7 @@ class FragmentGA:
         self.atom_encoder = atom_encoder
         self.bond_encoder = bond_encoder
         self.population_size = population_size
+        self.max_frag_size = 500
         self.fragments = self._extract_fragments()
 
         print(f'Fragments size: {len(self.fragments)}')
@@ -134,9 +135,14 @@ class FragmentGA:
         self.df['number_of_atoms'] = atoms_number
 
         print(f'Datsaset original size: {len(self.df)}')
-        self.df = self.df[self.target_value <= self.df['target_scaled']*1.40].reset_index(drop=True)
-        self.df = self.df[self.target_value >= self.df['target_scaled']*0.60].reset_index(drop=True)
-        self.df = self.df[self.df['number_of_atoms'] <= 40].reset_index(drop=True)
+
+        number_of_atoms = 35
+        a = 1.10
+        b = 0.90
+
+        self.df = self.df[self.target_value <= self.df['target_scaled']*a].reset_index(drop=True)
+        self.df = self.df[self.target_value >= self.df['target_scaled']*b].reset_index(drop=True)
+        self.df = self.df[self.df['number_of_atoms'] <= number_of_atoms].reset_index(drop=True)
         print(f'Datsaset size after filtering process: {len(self.df)}')
 
     def _extract_fragments(self):
@@ -156,12 +162,12 @@ class FragmentGA:
                 frags = BRICS.BRICSDecompose(mol, minFragmentSize=3, keepNonLeafNodes=True)
                 for f in frags:
                     frag_mol = Chem.MolFromSmiles(f, sanitize=True)
-                    if frag_mol and '*' in f and Descriptors.MolWt(frag_mol) < 200:
+                    if frag_mol and '*' in f and Descriptors.MolWt(frag_mol) < 300:
                         all_frags.add(f)
             except:
                 continue
 
-        fragments = list(all_frags)[:800]
+        fragments = list(all_frags)[:self.max_frag_size]
         return fragments
 
     def _mol_to_data(self, smiles):
