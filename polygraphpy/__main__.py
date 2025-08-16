@@ -1,7 +1,4 @@
 """
-polygraphpy.__main__
-====================
-
 Command-line interface (CLI) for the PolyGraphPy package.
 
 This module defines the `main()` entry point, which orchestrates the

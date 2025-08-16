@@ -1,7 +1,4 @@
 """
-polygraphpy.dftb.smiles_to_xyz
-==============================
-
 This module provides classes for converting SMILES strings into 3D molecular
 structures and saving them as `.xyz` files. It supports the generation of both
 monomers and polymers (homo- and copolymers) using RDKit and stk.

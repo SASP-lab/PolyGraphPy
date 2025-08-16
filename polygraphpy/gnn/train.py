@@ -1,7 +1,4 @@
 """
-polygraphpy.gnn.train
-=====================
-
 This module provides the `Train` class for training a Graph Neural Network
 (GNN) model. It handles the complete training and validation pipeline,
 including reading prepared graph data, splitting the dataset, creating

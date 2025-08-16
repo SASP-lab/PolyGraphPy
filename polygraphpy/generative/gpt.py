@@ -1,7 +1,4 @@
 """
-polygraphpy.generative.gpt
-==========================
-
 This module implements a generative model based on the GPT architecture for
 designing novel molecules. The process is broken down into three main stages:
 1.  **GenerativePreprocess**: Prepares the training data by converting SMILES strings

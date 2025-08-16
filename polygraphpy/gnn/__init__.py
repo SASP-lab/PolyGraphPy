@@ -1,7 +1,4 @@
 """
-polygraphpy.gnn
-===============
-
 This package contains the implementation of a Graph Neural Network (GNN)
 for predicting properties of molecules and polymers. It includes modules
 for defining the GNN model architecture, processing graph data, and

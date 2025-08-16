@@ -1,7 +1,4 @@
 """
-polygraphpy.dftb.polarizability_trace
-=======================================
-
 This module contains the `PolarizabilityTrace` class, which is a post-processing
 tool for DFTB+ simulation results. It is responsible for parsing the
 `detailed.out` files, extracting the static polarizability tensor, and

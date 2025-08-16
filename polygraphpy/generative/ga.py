@@ -1,7 +1,4 @@
 """
-polygraphpy.generative.ga
-=========================
-
 This module implements a genetic algorithm for the generative design of
 molecules, specifically focusing on polymer monomers. The algorithm uses
 molecular fragments to build new structures, and a pre-trained Graph Neural

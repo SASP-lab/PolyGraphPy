@@ -1,7 +1,4 @@
 """
-polygraphpy.dftb.dftb_simulation
-=================================
-
 This module provides the `DFTBSimulation` class for executing DFTB+ simulations
 on a collection of molecular structures. It manages the execution environment,
 handles subprocess calls to the DFTB+ executable, and logs the simulation

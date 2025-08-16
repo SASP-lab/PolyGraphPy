@@ -1,7 +1,4 @@
 """
-polygraphpy.generative
-======================
-
 This package contains modules for the generative design of novel polymer
 monomers. It provides two distinct approaches for molecule generation:
 
