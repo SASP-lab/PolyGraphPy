@@ -244,6 +244,6 @@ def run_generative_ga_pipeline(input_csv='polygraphpy/data/polarizability_data.c
             if fit > -1.0:
                 data.append({'smiles': smi, 'static_polarizability': t, 'fitness': fit[0]})
 
-    df = pd.DataFrame(data[:20])
-    print('Saving Top 20 generated molecules...')
+    df = pd.DataFrame(data)
+    print('Saving generated molecules...')
     df.to_csv(os.path.join(output_path, 'generated_molecules.csv'), index=False)
