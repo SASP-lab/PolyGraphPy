@@ -19,6 +19,14 @@ extensions = [
     'myst_parser',
 ]
 
+myst_enable_extensions = [
+    "colon_fence",
+    "deflist",
+    "linkify",
+    "substitution",
+    "tasklist",
+]
+
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 

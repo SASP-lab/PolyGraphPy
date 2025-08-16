@@ -1,4 +1,4 @@
-Welcome to PolyGraphPy's documentation!
+Welcome to PolyGraphPy's Documentation
 ======================================
 
 .. include:: ../../README.md
@@ -8,14 +8,7 @@ Welcome to PolyGraphPy's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   modules
-   data
    install
    usage
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   data
+   modules
