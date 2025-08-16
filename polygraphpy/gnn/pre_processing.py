@@ -1,7 +1,4 @@
 """
-polygraphpy.gnn.pre_processing
-==============================
-
 This module provides the `PreProcess` class, which handles all data preparation
 steps for training a Graph Neural Network (GNN) model. The workflow includes
 reading raw data, removing outliers, standardizing the target variable, and

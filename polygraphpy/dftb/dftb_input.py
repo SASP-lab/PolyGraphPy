@@ -1,7 +1,4 @@
 """
-polygraphpy.dftb.dftb_input
-============================
-
 This module contains the `DFTBInputGenerator` class, which is responsible
 for creating the necessary input files (`dftb_in.hsd`) for DFTB+
 simulations. The generator takes an `.xyz` file as input and configures the

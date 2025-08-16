@@ -21,14 +21,17 @@ classifiers = [
 dependencies = [
     "torch>=2.8.0",
     "torch-geometric>=2.6.1",
-    "torch-cluster>=1.6.3",
-    "torch-scatter>=2.1.2",
-    "torch-sparse>=0.6.18",
-    "torch-spline-conv>=1.2.2",
     "scikit-learn>=1.7.1",
     "selfies>=2.2.0",
-    "stk>=2025.7.17.0",
+    "stk>=2024.10.2.0",
     "transformers>=4.55.0",
+    "click>=8.2.1"
+    "joblib>=1.5.1"
+    "matplotlib>=3.10.5"
+    "numpy>=2.3.2
+    "pandas=>2.3.1"
+    "rdkit>=2025.3.3"
+    "tqdm>=4.67.1"
 ]
 
 [project.urls]

@@ -1,7 +1,4 @@
 """
-polygraphpy.gnn.prediction
-==========================
-
 This module provides the `Prediction` class for evaluating a trained Graph
 Neural Network (GNN) model. It handles loading a saved model and a validation
 dataset, performing predictions on the validation set, and calculating

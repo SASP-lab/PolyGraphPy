@@ -6,11 +6,16 @@ PolyGraphPy is a Python package for polymer graph-based property prediction and 
 
 Before installing and running this project, ensure that [DFTB+](https://www.dftbplus.org/) is installed on your system, as it is required for all quantum mechanical simulations. After installation, find the `dftb+` executable. This path will be required by the package to run simulations.
 
+After `dftb+` successful installation, you can find the executable path:
+
+```bash
+which dftb+
+```
+
 Install PyTorch and PyTorch Geometric dependencies first:
 
 ```bash
-pip install torch>=2.8.0
-pip install torch_geometric torch_cluster torch_scatter torch_sparse torch_spline_conv -f https://data.pyg.org/whl/torch-<torch_version>+<cuda_version>.html
+pip install torch torch_geometric
 ```
 
 ### Option 1: Install via PyPI
@@ -26,6 +31,19 @@ You can also clone the repository to use it without installing via PyPI:
 ```bash
 git clone https://github.com/yourusername/polygraphpy.git
 cd polygraphpy
+```
+
+Then create a virtual environment and activate it:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+Finally, install all the requirements:
+
+```bash
+pip install -r requirements.txt
 ```
 
 This allows running the code directly from the cloned repository.
@@ -76,7 +94,7 @@ After installing `polygraphpy` or cloning the repository and setting the path to
 * **Example data for monomers:**
 
 ```bash
-python -m polygraphpy --run-dftb --use-example-data --dftbplus-path /home/jgduarte/psi4conda/bin
+python -m polygraphpy --run-dftb --use-example-data --dftbplus-path /path/to/dftb+/executable
 ```
 
 This runs the DFTB+ simulation using the included example data.
@@ -84,7 +102,7 @@ This runs the DFTB+ simulation using the included example data.
 * **Copolymer simulations:**
 
 ```bash
-python -m polygraphpy --run-dftb --input-csv polygraphpy/data/original_dataset.csv --dftbplus-path /home/jgduarte/psi4conda/bin/ --is-polymer --polymer-chain-size 1 --polymer-type copolymer
+python -m polygraphpy --run-dftb --input-csv polygraphpy/data/original_dataset.csv --dftbplus-path /path/to/dftb+/executable --is-polymer --polymer-chain-size 1 --polymer-type copolymer
 ```
 
 Runs DFTB+ simulations for copolymers with chain size = 1 using the specified dataset.
