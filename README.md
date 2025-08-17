@@ -68,6 +68,7 @@ The directories and files listed below are managed by Git unless otherwise noted
 * **generative\_output/**: The final output of the generative process, including the generated molecules and their properties.
 * **gnn\_output/**: Stores the trained GNN model for monomers, along with training statistics and performance metrics.
 * **gnn\_output\_copoly/**: Stores the trained GNN model for copolymers and its corresponding outputs.
+* **uq\_analysis/**: Stores datasets specifically prepared for the uncertantity quantification of the GNN models.
 
 ---
 
@@ -145,3 +146,55 @@ python -m polygraphpy --run-generative --generative-model ga --target-polarizabi
 Generates molecules for a specific target polarizability using the GA.
 
 If no target polarizability is provided, the code will generate a `linspace(0,1,200)` for the GPT model and `linspace(0,1,100)` for the GA model as default targets.
+
+## 4. Examples Notebook: Manuscript Reproducibility
+
+The `examples/papers_results.ipynb` notebook demonstrates the full workflow of **PolyGraphPy**, reproducing the results reported in the manuscript:
+
+**PolyGraphPy: A unified Python framework for atomistic simulation and machine learning-driven polymer design**
+
+This notebook covers:
+
+1. **Environment Setup**  
+   Loading required Python packages (PyTorch, PyTorch Geometric, RDKit, DFTB+, pandas, matplotlib) and configuring plotting styles.
+
+2. **Dataset Exploration**  
+   * Loading and preprocessing the original acrylate dataset.  
+   * Visualizing molecular properties with histograms.  
+   * Inspecting DFTB+-computed static polarizabilities for monomers and homopolymers.
+
+3. **GNN Training Analysis**  
+   * Loading GNN training statistics for monomers/homopolymers and copolymers.  
+   * Visualizing training and validation loss over epochs.  
+   * Comparing ground truth vs. predicted polarizabilities.
+
+4. **Uncertainty Quantification**  
+   * Running Monte Carlo Dropout for validation predictions.  
+   * Computing and plotting the standard deviation across 100 runs.  
+   * Kernel density estimation (KDE) of errors (MAPE, R², MSE).
+
+5. **Generative Model Analysis**  
+   * **Genetic Algorithm (GA)**: fitness evaluation, KDE of generated molecules, R² assessment, and visualization of fitness distributions.  
+   * **GPT-based model**: generation analysis, novelty check against original dataset, error distributions, top candidate selection, and polarizability coverage.
+
+6. **Figures**  
+   The notebook produces all figures included in the manuscript (`Figure_12.pdf` through `Figure_23.pdf`) in the `../figures/` directory.
+
+---
+
+### How to Use
+
+1. Open the notebook:
+
+```bash
+jupyter notebook examples/papers_results.ipynb
+```
+
+2. Execute cells sequentially to:
+- Load datasets and preprocessing steps.
+- Run analysis for property prediction and generative modeling.
+- Reproduce plots and metrics from the manuscript.
+
+3. Ensure all required datasets are present in polygraphpy/data/ and outputs directories (gnn_output/, generative_output/, ga_output/) are available for full reproducibility.
+
+This notebook serves as a reference workflow for reproducing the results in the manuscript and understanding the capabilities of PolyGraphPy in polymer design and prediction tasks.
