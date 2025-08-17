@@ -14,3 +14,5 @@ transformers==4.53.2
 sphinx==8.2.3
 sphinx-rtd-theme==3.0.2
 myst-parser==4.0.1
+linkify==1.4
+linkify-it-py==2.0.3
