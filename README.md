@@ -82,7 +82,7 @@ The following directories are intentionally ignored by Git as they contain large
 * **validation\_data/**: The set of monomer graphs held out for model validation and prediction.
 * **validation\_data\_copoly/**: The validation set of copolymer graphs.
 * **xyz\_files/**: Contains XYZ files for the molecules, typically used for molecular geometry visualization.
-* **generative\_model/**: Contains the trained GPT generative model.
+* **generative\_model/**: Contains the trained GPT generative model. One can download the pretrained GPT model following this link: [GPT-selfies-pretrained-model](https://zenodo.org/records/16891656?token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjQ4YjMwYjAzLTQwOGEtNDVlNi05ODRjLTkxZDQ2YzI1YWVkMSIsImRhdGEiOnt9LCJyYW5kb20iOiIwYzU4NDAzYWI5ODFlMTFhZGFkZDllOTVkN2M3ZGYxMyJ9.0rLEp9fgpLOIHL5QqRLsXotpBj17LGBOciUsXtZ5a-euh2VLYCurc6MfAvcOTO1_-iqBDm1b7a9MZHjNIKKzXg)
 
 ---
 
