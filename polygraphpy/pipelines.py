@@ -15,7 +15,7 @@ from tqdm import tqdm
 from sklearn.preprocessing import MinMaxScaler
 
 def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, polymer_type: str = 'homopoly',
-                      dftbplus_path: str = None, use_example_data: bool = False, polymer_chain_size: int = 2):
+                      dftbplus_path: str = None, use_example_data: bool = False, polymer_chain_size: int = 2, dynamics=False):
     """Run the full DFTB+ pipeline to compute polarizability traces.
 
     This function automates the process of generating molecular geometries, creating
@@ -36,6 +36,9 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, polymer_t
     :param polymer_chain_size: The number of monomer units in a polymer chain. Defaults to 2.
     :type polymer_chain_size: int, optional
     :raises ValueError: If `input_csv` is not provided and `use_example_data` is False.
+    :param dynamics: If True, append an ElectronDynamics block to enable TD dynamics.
+                     Defaults to False.
+    :type dynamics: bool, optional
     :return: A list of computed polarizability traces.
     :rtype: list
     """
@@ -55,7 +58,7 @@ def run_dftb_pipeline(input_csv: str = None, is_polymer: bool = False, polymer_t
     print(f"XYZ generation complete: {sum('Saved' in r for r in xyz_results)} files created")
     
     # Step 2: Generate DFTB+ input files
-    input_generator = DFTBInputGenerator()
+    input_generator = DFTBInputGenerator(dynamics=dynamics)
     xyz_files = [os.path.join('polygraphpy/data/xyz_files', f) for f in os.listdir('polygraphpy/data/xyz_files') if f.endswith('.xyz')]
     input_results = [input_generator.prepare_input(xyz_file) for xyz_file in xyz_files]
     print(f"Input generation complete: {sum(input_results)} inputs created")

@@ -69,6 +69,11 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
               type=int, 
               help='Sets the number of repeating monomer units for polymer generation.')
 
+@click.option('--electron-dynamics', 
+              default=False, 
+              type=bool, 
+              help='If True, append an ElectronDynamics block to enable TD dynamics.')
+
 # GNN parameters
 @click.option('--train-gnn-prediction', 
               is_flag=True, 
@@ -164,7 +169,8 @@ def main(run_dftb,
          polymer_type, 
          dftbplus_path, 
          use_example_data, 
-         polymer_chain_size, 
+         polymer_chain_size,
+         electron_dynamics, 
          train_gnn_prediction, 
          batch_size, 
          learning_rate, 
@@ -204,6 +210,9 @@ def main(run_dftb,
     :type use_example_data: bool
     :param polymer_chain_size: Number of units in the polymer chain.
     :type polymer_chain_size: int
+    :param electron_dynamics: If True, append an ElectronDynamics block to enable TD dynamics.
+                     Defaults to False.
+    :type electron_dynamics: bool, optional
     :param train_gnn_prediction: Flag to train the GNN prediction model.
     :type train_gnn_prediction: bool
     :param batch_size: Batch size for GNN training.
@@ -256,7 +265,8 @@ def main(run_dftb,
             polymer_type=polymer_type,
             dftbplus_path=dftbplus_path,
             use_example_data=use_example_data,
-            polymer_chain_size=polymer_chain_size
+            polymer_chain_size=polymer_chain_size,
+            dynamics=electron_dynamics,
         )
     else:
         print('Jumping DFTB+ execution.')

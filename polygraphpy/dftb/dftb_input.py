@@ -1,12 +1,3 @@
-"""
-This module contains the `DFTBInputGenerator` class, which is responsible
-for creating the necessary input files (`dftb_in.hsd`) for DFTB+
-simulations. The generator takes an `.xyz` file as input and configures the
-DFTB+ parameters, including atomic species, angular momentum basis sets,
-Slater-Koster files, and calculation types (e.g., geometry optimization,
-polarizability analysis).
-"""
-
 import os
 from pathlib import Path
 from datetime import datetime
@@ -20,7 +11,8 @@ class DFTBInputGenerator(Simulator):
     create a `dftb_in.hsd` file for a given `.xyz` molecular structure. It
     automatically determines the maximum angular momentum for each element
     and configures DFTB+ for geometry optimization and static polarizability
-    calculations.
+    calculations. Optionally, it can also configure time-dependent electron
+    dynamics.
 
     :param xyz_dir: Directory containing the input `.xyz` files.
                     Defaults to 'polygraphpy/data/xyz_files'.
@@ -36,32 +28,26 @@ class DFTBInputGenerator(Simulator):
     :param log_file: Path to the log file for recording input generation events and errors.
                      Defaults to 'dftb_pipeline.log'.
     :type log_file: str, optional
+    :param dynamics: If True, append an ElectronDynamics block to enable TD dynamics.
+                     Defaults to False.
+    :type dynamics: bool, optional
     """
     
-    def __init__(self, xyz_dir: str = 'polygraphpy/data/xyz_files', molecules_dir: str = 'polygraphpy/data/molecules',
-                 sk_dir: str = '3ob-3-1', log_file: str = 'dftb_pipeline.log'):
-        """Initializes the DFTBInputGenerator.
-        """
+    def __init__(self, xyz_dir: str = 'polygraphpy/data/xyz_files', molecules_dir: str = 'polygraphpy/data/molecules', sk_dir: str = '3ob-3-1', 
+                 log_file: str = 'dftb_pipeline.log', dynamics: bool = False,):
+        """Initializes the DFTBInputGenerator."""
         super().__init__()
         self.xyz_dir = xyz_dir
         self.molecules_dir = molecules_dir
         self.sk_dir = sk_dir
         self.log_file = log_file
+        self.dynamics = dynamics
         os.makedirs(molecules_dir, exist_ok=True)
         with open(log_file, 'w') as log:
             log.write(f"Starting DFTB+ input generation at {datetime.now()}\n")
     
     def get_angular_momentum(self, element: str) -> str:
-        """Determines the maximum angular momentum basis for a given element.
-
-        This method maps common elements to their typical highest angular
-        momentum orbitals (s, p, or d) used in DFTB+ calculations.
-
-        :param element: The atomic symbol (e.g., "H", "C", "Fe").
-        :type element: str
-        :return: The string representing the maximum angular momentum ("s", "p", or "d").
-        :rtype: str
-        """
+        """Determines the maximum angular momentum basis for a given element."""
         s_elements = {"H", "Li", "Na", "K", "Rb", "Cs", "Fr", "He", "Ne", "Ar", "Kr", "Xe", "Rn"}
         p_elements = {"Be", "Mg", "Ca", "Sr", "Ba", "Ra", "B", "Al", "Ga", 
                       "In", "Tl", "C", "Si", "Ge", "Sn", "Pb", "N", "P", 
@@ -86,17 +72,7 @@ class DFTBInputGenerator(Simulator):
             return "p"
     
     def prepare_input(self, xyz_file: str) -> bool:
-        """Generates the `dftb_in.hsd` input file for a single .xyz molecular structure.
-
-        This method reads the `.xyz` file to determine the elements present,
-        configures the DFTB+ calculation settings (geometry optimization, SCC,
-        polarizability), and writes the HSD file to a dedicated job directory.
-
-        :param xyz_file: Path to the input `.xyz` file for which to generate the DFTB+ input.
-        :type xyz_file: str
-        :return: True if the input file was successfully generated or already exists, False otherwise.
-        :rtype: bool
-        """
+        """Generates the `dftb_in.hsd` input file for a single .xyz molecular structure."""
         try:
             base_name = Path(xyz_file).stem
             job_dir = os.path.join(self.molecules_dir, base_name)
@@ -163,20 +139,34 @@ Hamiltonian = DFTB {{
    }}
 
    Filling = Fermi {{
-    Temperature [K] = 300
+      Temperature [K] = 300
    }}
 }}
 
 Analysis = {{
   Polarisability = {{
     Static = Yes
-    }}
-}}
-
-ParserOptions {{
-   ParserVersion = 14
+  }}
 }}
 """
+            if self.dynamics:
+                hsd_content += """
+ElectronDynamics = {
+   Steps = 40000
+   TimeStep [au] = 0.1
+   Perturbation = Kick {
+     PolarizationDirection = all
+   }
+   FieldStrength [v/a] = 0.001
+}
+"""
+
+            hsd_content += """
+ParserOptions {
+   ParserVersion = 14
+}
+"""
+
             with open(hsd_file, "w") as f:
                 f.write(hsd_content)
             return True
@@ -187,21 +177,9 @@ ParserOptions {{
             return False
     
     def run(self) -> None:
-        """This method is not implemented in `DFTBInputGenerator`.
-
-        Input generation is a preparation step, and the actual simulation
-        execution is handled by the `DFTBSimulation` class.
-
-        :raises NotImplementedError: Always, as this method is not intended for use here.
-        """
+        """This method is not implemented in `DFTBInputGenerator`."""
         raise NotImplementedError("Use DFTBSimulation to run simulations.")
     
     def process_output(self) -> None:
-        """This method is not implemented in `DFTBInputGenerator`.
-
-        Output processing of DFTB+ results is handled by the
-        `PolarizabilityTrace` class.
-
-        :raises NotImplementedError: Always, as this method is not intended for use here.
-        """
+        """This method is not implemented in `DFTBInputGenerator`."""
         raise NotImplementedError("Use PolarizabilityTrace to process outputs.")
