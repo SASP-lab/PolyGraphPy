@@ -226,7 +226,7 @@ def run_generative_ga_pipeline(input_csv='polygraphpy/data/polarizability_data.c
     df['target_scaled'] = scaler.fit_transform(df[target_column].values.reshape(-1,1))
 
     if target_polarizability is None:
-        Q1 = df['target_scaled'].quantile(0.25)
+        Q1 = df['target_scaled'].quantile(0.01)
         Q3 = df['target_scaled'].quantile(0.75)
         targets = np.linspace(Q1, Q3, 100)
     else:
