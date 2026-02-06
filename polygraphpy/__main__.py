@@ -43,7 +43,7 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
 
 @click.option('--input-csv', 
               type=click.Path(exists=True), 
-              default='polygraphpy/data/original_dataset.csv', 
+              default='polygraphpy/data/full_dataset.csv', 
               help='Path to the input CSV file containing SMILES strings. Required unless --use-example-data is set.')
 
 @click.option('--is-polymer', 
@@ -80,17 +80,17 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
               help='The batch size to be used during GNN model training.')
 
 @click.option('--learning-rate', 
-              default=5e-4, 
+              default=1e-4, 
               type=float, 
               help='The learning rate for the GNN model optimizer.')
 
 @click.option('--number-conv-channels', 
-              default=150, 
+              default=175, 
               type=int, 
               help='The number of hidden channels in the GCN convolutional layers.')
 
 @click.option('--number-fc-channels', 
-              default=150, 
+              default=175, 
               type=int, 
               help='The number of hidden channels in the GNNs fully connected (MLP) layers.')
 

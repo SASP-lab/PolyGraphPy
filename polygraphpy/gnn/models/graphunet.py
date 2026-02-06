@@ -154,7 +154,7 @@ class GraphUNet(torch.nn.Module):
                 f'depth={self.depth}, pool_ratios={self.pool_ratios})')
 
 class GraphUNetModel(torch.nn.Module):
-    def __init__(self, input_dim: int, conv_hidden_channels: int, mlp_hidden_channels: int, depth: int = 5, pool_ratios: float = 0.5) -> None:
+    def __init__(self, input_dim: int, conv_hidden_channels: int, mlp_hidden_channels: int, depth: int = 6, pool_ratios: float = 0.5) -> None:
         super(GraphUNetModel, self).__init__()
         self.input_dim = input_dim
         self.conv_hidden_channels = conv_hidden_channels

@@ -442,7 +442,7 @@ class PolymerXyzGenerator(XyzGeneratorBase):
             df_acrylates = df_acrylates[~df_acrylates['smiles'].apply(self.has_metal)]
 
             print("Creating partitions using RCB method...")
-            coords = df_acrylates[['mw', 'complexity', 'polararea', 'xlogp', 'rotbonds', 'heavycnt']].values
+            coords = df_acrylates[['mw', 'complexity', 'polararea']].values
             num_levels = 4
             assignments = self.rcb_partition(coords, num_levels=num_levels)
             df_acrylates['cluster'] = assignments
