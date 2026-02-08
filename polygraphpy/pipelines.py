@@ -223,6 +223,8 @@ def run_generative_ga_pipeline(input_csv='polygraphpy/data/polarizability_data.c
     df = df[df['chain_size'] == 0]
 
     scaler = MinMaxScaler()
+    print('Statistical description of the input.')
+    print(df[target_column].describe())
     df['target_scaled'] = scaler.fit_transform(df[target_column].values.reshape(-1,1))
 
     if target_polarizability is None:
@@ -231,6 +233,7 @@ def run_generative_ga_pipeline(input_csv='polygraphpy/data/polarizability_data.c
         targets = np.linspace(Q1, Q3, 100)
     else:
         targets = [target_polarizability]
+    print(f'Target(s) scaled: {targets}')
 
     data = []
     output_path = 'polygraphpy/data/ga_output/'
@@ -246,4 +249,5 @@ def run_generative_ga_pipeline(input_csv='polygraphpy/data/polarizability_data.c
 
     df = pd.DataFrame(data)
     print('Saving generated molecules...')
+    df = df.drop_duplicates(subset='smiles').reset_index(drop=True)
     df.to_csv(os.path.join(output_path, 'generated_molecules.csv'), index=False)

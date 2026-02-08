@@ -133,7 +133,7 @@ class FragmentGA:
 
         print(f'Datsaset original size: {len(self.df)}')
 
-        number_of_atoms = 35
+        number_of_atoms = 40
         a = 1.10
         b = 0.90
 
@@ -146,7 +146,7 @@ class FragmentGA:
         """Extracts and filters molecular fragments from the pre-processed dataset."""
         all_frags = set()
 
-        acrylate_core = Chem.MolFromSmarts('C=C-C(=O)O-[*]')
+        acrylate_core = Chem.MolFromSmarts('[CX3]=[CX3][CX3](=[OX1])[OX2]')
         for smi in tqdm(self.df['smiles_A']):
             mol = Chem.MolFromSmiles(smi, sanitize=True)
 
