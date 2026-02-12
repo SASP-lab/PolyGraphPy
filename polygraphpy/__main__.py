@@ -80,7 +80,7 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
               help='The batch size to be used during GNN model training.')
 
 @click.option('--learning-rate', 
-              default=1e-4, 
+              default=5e-4, 
               type=float, 
               help='The learning rate for the GNN model optimizer.')
 
