@@ -80,7 +80,7 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
               help='The batch size to be used during GNN model training.')
 
 @click.option('--learning-rate', 
-              default=5e-4, 
+              default=2e-4, 
               type=float, 
               help='The learning rate for the GNN model optimizer.')
 
@@ -129,12 +129,12 @@ from polygraphpy.pipelines import run_dftb_pipeline, run_gnn_pipeline, run_gener
               help='The batch size for training the GPT generative model.')
 
 @click.option('--generative-learning-rate', 
-              default=5e-5, 
+              default=1e-4, 
               type=float,
               help='The learning rate for the GPT generative model.')
 
 @click.option('--generative-epochs', 
-              default=150, 
+              default=250, 
               type=int, 
               help='The number of epochs to train the GPT generative model.')
 

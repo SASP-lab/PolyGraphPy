@@ -146,7 +146,9 @@ class FragmentGA:
         """Extracts and filters molecular fragments from the pre-processed dataset."""
         all_frags = set()
 
-        acrylate_core = Chem.MolFromSmarts('[CX3]=[CX3][CX3](=[OX1])[OX2]')
+        # Acrylate pattern: C=C-C(=O)O
+        acrylate_core_pattern = Chem.MolFromSmarts('[CX3]=[CX3][CX3](=[OX1])[OX2]')
+        
         for smi in tqdm(self.df['smiles_A']):
             mol = Chem.MolFromSmiles(smi, sanitize=True)
 
@@ -154,13 +156,16 @@ class FragmentGA:
                 continue
             try:
                 Chem.RemoveStereochemistry(mol)
-                if not mol.HasSubstructMatch(acrylate_core):
+                if not mol.HasSubstructMatch(acrylate_core_pattern):
                     continue
                 frags = BRICS.BRICSDecompose(mol, minFragmentSize=3, keepNonLeafNodes=True)
                 for f in frags:
                     frag_mol = Chem.MolFromSmiles(f, sanitize=True)
                     if frag_mol and '*' in f and Descriptors.MolWt(frag_mol) < 300:
-                        all_frags.add(f)
+                        # FIX 1: Exclude fragments that already contain the acrylate group.
+                        # This prevents the creation of di-acrylates when we add the core later.
+                        if not frag_mol.HasSubstructMatch(acrylate_core_pattern):
+                            all_frags.add(f)
             except:
                 continue
 
@@ -300,6 +305,9 @@ class FragmentGA:
                 if mol is None:
                     continue
                 try:
+                    # When decomposing top individuals, we also need to avoid re-introducing acrylate-containing fragments
+                    # However, BRICS usually breaks the molecule down enough. 
+                    # The filtering logic in `build_molecule` will handle any accidental re-introductions
                     top_frags.update(BRICS.BRICSDecompose(mol, minFragmentSize=3))
                 except:
                     continue
@@ -324,15 +332,17 @@ def build_molecule(fragments):
 
     It uses the BRICS algorithm to recombine fragments, ensuring that the
     resulting molecule is chemically plausible. It also checks for the
-    presence of an acrylate core.
+    presence of EXACTLY ONE acrylate core.
 
     :param fragments: A list of SMILES strings of molecular fragments.
     :type fragments: list
-    :return: A valid SMILES string of a newly built molecule or None if
-             the process fails after several attempts.
+    :return: A valid SMILES string of a newly built molecule or None.
     :rtype: str or None
     """
     acrylate_core = Chem.MolFromSmiles('C=CC(=O)O*')
+    
+    # SMARTS for Acrylate group: C=C-C(=O)O
+    acrylate_pattern = Chem.MolFromSmarts('[CX3]=[CX3][CX3](=[OX1])[OX2]')
 
     for attempt in range(100):
         r_frags = random.sample(fragments, k=random.randint(1, 3))[:100]
@@ -351,13 +361,14 @@ def build_molecule(fragments):
                 smi = Chem.MolToSmiles(mol, isomericSmiles=False)
                 mol = Chem.MolFromSmiles(smi, sanitize=True)
 
-                if mol and mol.HasSubstructMatch(Chem.MolFromSmarts('C=C-C(=O)O')):
-                    Chem.SanitizeMol(mol)
-
-                    return smi
+                if mol:
+                    matches = mol.GetSubstructMatches(acrylate_pattern)
+                    
+                    if len(matches) == 1:
+                        Chem.SanitizeMol(mol)
+                        return smi
                 
         except Exception as e:
-            print(f"Attempt {attempt + 1} failed with fragments {r_frags}: {str(e)}")
             continue
 
     return None

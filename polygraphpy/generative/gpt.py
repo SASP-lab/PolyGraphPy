@@ -208,6 +208,9 @@ class MoleculeGenerator:
         self.model = self.model.to(self.device)
         self.model.eval()
 
+        # Define the strict Acrylate pattern (C=C-C(=O)O)
+        self.acrylate_pattern = Chem.MolFromSmarts('[CX3]=[CX3][CX3](=[OX1])[OX2]')
+
     def generate_one(self, pol_val, max_len=1000):
         """Generates a single molecule (as SMILES) based on a target polarizability.
 
@@ -235,104 +238,81 @@ class MoleculeGenerator:
 
             smiles = sf.decoder(selfies) if selfies else None
             valid = smiles and Chem.MolFromSmiles(smiles) is not None
-            print(f"{smiles} - Valid: {valid}")
             return smiles if valid else None
         
         except Exception as e:
-            print(e)
             return None
     
-    def is_mixed_neutral_smiles(self, smiles: str) -> bool:
-        """Checks if a SMILES string represents a molecule with multiple neutral fragments.
-
-        :param smiles: The SMILES string to check.
-        :type smiles: str
-        :return: True if the molecule has multiple neutral fragments, False otherwise.
-        :rtype: bool
+    def validate_molecule(self, smiles):
+        """Strict validation for Monomer Acrylates.
+        
+        Checks:
+        1. RDKit Validity
+        2. Single Fragment (No mixtures/dots)
+        3. EXACTLY ONE Acrylate Group (No cross-linkers)
         """
+        if not smiles:
+            return False
+            
         mol = Chem.MolFromSmiles(smiles)
-
         if mol is None:
             return False
-        
-        fragments = Chem.GetMolFrags(mol, asMols=True)
-        
-        if len(fragments) == 1:
+
+        # Check 1: Must be a single fragment (no dots in SMILES)
+        # Using GetMolFrags matches is more robust than string split
+        frags = Chem.GetMolFrags(mol)
+        if len(frags) > 1:
             return False
-        
-        all_neutral = all(sum(atom.GetFormalCharge() for atom in frag.GetAtoms()) == 0 for frag in fragments)
-        
-        return all_neutral
 
-    def is_acrylate(self, smi):
-        """Checks if a SMILES string contains an acrylate substructure.
+        # Check 2: Must have EXACTLY ONE acrylate group
+        matches = mol.GetSubstructMatches(self.acrylate_pattern)
+        if len(matches) != 1:
+            return False
 
-        :param smi: The SMILES string to check.
-        :type smi: str
-        :return: True if the molecule contains an acrylate group, False otherwise.
-        :rtype: bool
-        """
-        acrylate_smarts = "C=C[C](=O)O"
-        acrylate_mol = Chem.MolFromSmarts(acrylate_smarts)
-        mol = Chem.MolFromSmiles(smi)
-
-        return mol.HasSubstructMatch(acrylate_mol) if mol else False
+        return True
     
     def mol_to_data(self, smiles):
-        """Converts a SMILES string into a PyTorch Geometric `Data` object.
+        """Converts a SMILES string into a PyTorch Geometric `Data` object."""
+        try:
+            atoms = []
+            bonds = []
+            m1 = Chem.MolFromSmiles(smiles, sanitize=True)
+            if m1 is None:
+                return None
+            m1 = Chem.AddHs(m1)
+            
+            atoms = self.preprocess.get_nodes_information(m1, [], chain_size=0)
+            if not atoms:
+                return None
+            
+            df_nodes = pd.DataFrame(atoms)
+            nodes_features = pd.DataFrame(self.atom_encoder.transform(df_nodes.drop(['idx'], axis=1)).toarray())
+            x = torch.tensor(nodes_features.astype('float32').values)
+            
+            bonds = self.preprocess.get_bonds_information(m1, [])
+            if not bonds:
+                return None
+            df_bonds = pd.DataFrame(bonds)
+            edge_index = torch.tensor([
+                df_bonds.begin_idx.to_list() + df_bonds.end_idx.to_list(),
+                df_bonds.end_idx.to_list() + df_bonds.begin_idx.to_list()
+            ])
+            
+            edge_attrs = df_bonds[['type', 'is_conjugated', 'is_aromatic']]
+            edge_attrs = pd.concat([edge_attrs, edge_attrs.sort_index(ascending=False)])
+            edge_attr = torch.tensor(self.bond_encoder.transform(edge_attrs).toarray())
+            
+            edge_weight = torch.tensor([1.0] * edge_index.shape[1], dtype=torch.float32)
+            
+            mol_data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, edge_weight=edge_weight)
 
-        This method is used to prepare generated molecules for GNN prediction.
-
-        :param smiles: The SMILES string of the molecule.
-        :type smiles: str
-        :return: A `Data` object or None if the SMILES is invalid.
-        :rtype: Data or None
-        """
-        atoms = []
-        bonds = []
-        m1 = Chem.MolFromSmiles(smiles, sanitize=True)
-        if m1 is None:
-            print(f"Invalid SMILES: {smiles}")
+            return mol_data
+        except Exception as e:
+            print(f"Error converting {smiles}: {e}")
             return None
-        m1 = Chem.AddHs(m1)
-        
-        atoms = self.preprocess.get_nodes_information(m1, [], chain_size=0)
-
-        if not atoms:
-            print(f"No atoms extracted for SMILES: {smiles}")
-            return None
-        
-        df_nodes = pd.DataFrame(atoms)
-        nodes_features = pd.DataFrame(self.atom_encoder.transform(df_nodes.drop(['idx'], axis=1)).toarray())
-        x = torch.tensor(nodes_features.astype('float32').values)
-        
-        bonds = self.preprocess.get_bonds_information(m1, [])
-        if not bonds:
-            print(f"No bonds extracted for SMILES: {smiles}")
-            return None
-        df_bonds = pd.DataFrame(bonds)
-        edge_index = torch.tensor([
-            df_bonds.begin_idx.to_list() + df_bonds.end_idx.to_list(),
-            df_bonds.end_idx.to_list() + df_bonds.begin_idx.to_list()
-        ])
-        
-        edge_attrs = df_bonds[['type', 'is_conjugated', 'is_aromatic']]
-        edge_attrs = pd.concat([edge_attrs, edge_attrs.sort_index(ascending=False)])
-        edge_attr = torch.tensor(self.bond_encoder.transform(edge_attrs).toarray())
-        
-        edge_weight = torch.tensor([1.0] * edge_index.shape[1], dtype=torch.float32)
-        
-        mol_data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, edge_weight=edge_weight)
-        mol_data.validate()
-
-        return mol_data
     
     def load_gnn_model(self):
-        """Loads a pre-trained GNN model and its encoders for validation.
-
-        :return: The loaded GNN model.
-        :rtype: torch.nn.Module
-        """
+        """Loads a pre-trained GNN model and its encoders for validation."""
         self.preprocess = PreProcess(
             input_csv='polygraphpy/data/polarizability_data.csv',
             train_input_data_path='prediction_test',
@@ -353,39 +333,33 @@ class MoleculeGenerator:
         return model
     
     def fine_tunning_with_gnn(self, df: pd.DataFrame):
-        """Validates generated molecules by predicting their polarizability with a GNN.
+        """Validates generated molecules by predicting their polarizability with a GNN."""
+        df_results = []
 
-        :param df: DataFrame of generated molecules.
-        :type df: pd.DataFrame
-        :return: A DataFrame with GNN predictions added.
-        :rtype: pd.DataFrame
-        """
-        df_results = pd.DataFrame()
+        for row in df.itertuples():
+            mol_data = self.mol_to_data(row.smiles_A)
+            if mol_data is None:
+                continue
 
-        for i in df.itertuples():
-            mol_data = self.mol_to_data(i.smiles_A).to(self.device)
+            mol_data = mol_data.to(self.device)
 
             with torch.no_grad():
                 batch = torch.zeros(mol_data.x.size(0), dtype=torch.long).to(self.device)
                 pred = self.gnn_model(mol_data.x, mol_data.edge_index, mol_data.edge_weight, batch)
 
-            df_results = pd.concat([df_results, pd.DataFrame({'smiles_A': i.smiles_A, 
-                                                            'static_polarizability': i.static_polarizability, 
-                                                            'static_polarizability_pred': pred.cpu().numpy()[0][0]}, index=[0])]).reset_index(drop=True)
+            df_results.append({
+                'smiles_A': row.smiles_A, 
+                'static_polarizability': row.static_polarizability, 
+                'static_polarizability_pred': pred.cpu().numpy()[0][0]
+            })
             
-        return df_results
+        return pd.DataFrame(df_results)
     
     def apply_error_threshold(self, df: pd.DataFrame):
-        """Filters generated molecules based on the GNN prediction error.
+        """Filters generated molecules based on the GNN prediction error."""
+        if df.empty:
+            return df, df
 
-        This method compares the GNN-predicted polarizability with the target
-        value and keeps only those within the specified error threshold.
-
-        :param df: DataFrame with generated molecules and GNN predictions.
-        :type df: pd.DataFrame
-        :return: A tuple containing the original and the filtered DataFrames.
-        :rtype: tuple[pd.DataFrame, pd.DataFrame]
-        """
         with open(f'polygraphpy/data/generative_data/scaler.pkl', 'rb') as file:
             loaded_encoder : OneHotEncoder = pickle.load(file)
         
@@ -399,41 +373,34 @@ class MoleculeGenerator:
         return df, df_filtered
     
     def post_processing(self, df: pd.DataFrame):
-        """Performs a series of post-processing and validation steps.
-
-        This includes removing duplicates, checking for structural properties,
-        and using the GNN to validate the generated molecules.
-
-        :param df: DataFrame of generated molecules.
-        :type df: pd.DataFrame
-        :return: A tuple containing the original and filtered DataFrames.
-        :rtype: tuple[pd.DataFrame, pd.DataFrame]
-        """
+        """Performs a series of post-processing and validation steps."""
         print('Making post processing with GNN prediction model.')
 
         df = df.drop_duplicates(subset='smiles').reset_index(drop=True)
         df = df.rename(columns={'smiles': 'smiles_A'})
-        df['chain_size'] = 0
-        df['id_A'] = df.index
+        
+        # --- FIX: Apply Strict Validation Filter Here ---
+        # 1. We keep only rows where validation returns True
+        df['is_valid'] = df['smiles_A'].apply(self.validate_molecule)
+        df_filtered = df[df['is_valid']].reset_index(drop=True)
+        
+        if df_filtered.empty:
+            print("Warning: No valid mono-acrylates found after structural filtering.")
+            return df, df_filtered
 
-        df_filtered = df[~df["smiles_A"].apply(self.is_mixed_neutral_smiles)].reset_index(drop=True)
-        df_filtered["is_acrylate"] = df_filtered["smiles_A"].apply(self.is_acrylate)
-
+        # Load GNN for property prediction
         self.gnn_model = self.load_gnn_model()
 
-        df = self.fine_tunning_with_gnn(df_filtered)
-        df, df_filtered = self.apply_error_threshold(df)
+        # Run GNN only on the structurally valid molecules
+        df_results = self.fine_tunning_with_gnn(df_filtered)
+        
+        # Apply property error threshold
+        df_final, df_final_filtered = self.apply_error_threshold(df_results)
 
-        return df, df_filtered
+        return df_final, df_final_filtered
 
     def run(self, targets):
-        """Orchestrates the entire generation, validation, and saving process.
-
-        :param targets: A list of target polarizability values (scaled) to generate molecules for.
-        :type targets: list
-        :return: The DataFrame of generated molecules.
-        :rtype: pd.DataFrame
-        """
+        """Orchestrates the entire generation, validation, and saving process."""
         data = []
 
         for i in tqdm(targets):
@@ -445,13 +412,17 @@ class MoleculeGenerator:
         df = pd.DataFrame(data)
         print(f'Original data size: {len(df)}')
 
+        if df.empty:
+            print("No valid SMILES generated.")
+            return df
+
         df, df_filtered = self.post_processing(df)
         print(f'Filtered data size: {len(df_filtered)}')
 
         df.to_csv(os.path.join(self.output_path, 'generated_molecules.csv'), index=False)
 
         if len(df_filtered) == 0:
-            print('Filtered dataframe has 0 length. Consider change your threshold.')
+            print('Filtered dataframe has 0 length. Consider changing your threshold.')
         else:
             df_filtered.to_csv(os.path.join(self.output_path, 'generated_molecules_filtered.csv'), index=False)
         

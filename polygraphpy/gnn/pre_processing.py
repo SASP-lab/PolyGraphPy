@@ -65,11 +65,12 @@ class PreProcess():
         :return: None
         :rtype: None
         """
+        
         Q1 = self.df[self.target].quantile(0.25)
         Q3 = self.df[self.target].quantile(0.75)
         IQR = Q3 - Q1
         lower_bound = Q1 - 1.5 * IQR
-        upper_bound = Q3 + 1.5 * IQR
+        upper_bound = Q3 + 1.15 * IQR
         self.df = self.df[(self.df[self.target] >= lower_bound) & (self.df[self.target] <= upper_bound)].reset_index(drop=True)
 
     def data_standardization(self):
