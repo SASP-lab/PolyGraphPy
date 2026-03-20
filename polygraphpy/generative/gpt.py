@@ -26,32 +26,13 @@ from torch_geometric.data import Data
 from sklearn.preprocessing import OneHotEncoder
 
 class GenerativePreprocess:
-    """Prepares data for training a GPT-based generative model.
-
-    This class reads a CSV of molecular data, filters it to include only monomers,
-    converts SMILES to SELFIES, and standardizes the target property. The
-    processed data and the scaler are saved for later use.
-
-    :param input_csv: Path to the input CSV file containing molecular data.
-    :type input_csv: str
-    :param output_path: Directory to save the processed data and scaler.
-                        Defaults to 'polygraphpy/data/generative_data/'.
-    :type output_path: str, optional
-    """
+    """Prepares data for training a GPT-based generative model."""
     def __init__(self, input_csv, output_path='polygraphpy/data/generative_data/'):
         self.input_csv = input_csv
         self.output_path = output_path
         os.makedirs(self.output_path, exist_ok=True)
 
     def run(self):
-        """Executes the data pre-processing pipeline.
-
-        It reads the input data, filters monomers, standardizes the target,
-        encodes SMILES to SELFIES, and saves the results to CSV and pickle files.
-
-        :return: The path to the output directory.
-        :rtype: str
-        """
         df = pd.read_csv(self.input_csv)
         df = df[df['chain_size'] == 0].reset_index(drop=True)
         scaler = MinMaxScaler()
@@ -69,47 +50,18 @@ class GenerativePreprocess:
         return self.output_path
 
 class SelfiesDataset(Dataset):
-    """A PyTorch Dataset for SELFIES strings.
-
-    This class tokenizes SELFIES strings using a GPT tokenizer and prepares
-    them for use with a PyTorch DataLoader.
-
-    :param texts: A list of text strings (e.g., "polarizability: X selfies: Y").
-    :type texts: list
-    :param tokenizer: The GPT tokenizer instance.
-    :type tokenizer: transformers.PreTrainedTokenizer
-    :param max_len: The maximum sequence length for tokenization. Defaults to 128.
-    :type max_len: int, optional
-    """
+    """A PyTorch Dataset for SELFIES strings."""
     def __init__(self, texts, tokenizer, max_len=128):
         self.encodings = tokenizer(texts, truncation=True, padding=True, max_length=max_len, return_tensors='pt')
 
     def __len__(self):
-        """Returns the number of samples in the dataset."""
         return len(self.encodings['input_ids'])
 
     def __getitem__(self, idx):
-        """Retrieves a single sample from the dataset."""
         return {k: v[idx] for k, v in self.encodings.items()}
 
 class GenerativeTrainer:
-    """Fine-tunes a GPT-2 model for molecular generation.
-
-    This class loads a pre-processed dataset, initializes a GPT-2 model,
-    and trains it to generate SELFIES strings based on a given polarizability
-    target. The fine-tuned model is saved to disk.
-
-    :param data_path: Path to the directory containing the pre-processed data.
-    :type data_path: str
-    :param model_output_path: Directory to save the trained model.
-    :type model_output_path: str
-    :param batch_size: Number of samples per training batch. Defaults to 4.
-    :type batch_size: int, optional
-    :param learning_rate: Learning rate for the optimizer. Defaults to 5e-5.
-    :type learning_rate: float, optional
-    :param epochs: Number of training epochs. Defaults to 100.
-    :type epochs: int, optional
-    """
+    """Fine-tunes a GPT-2 model for molecular generation."""
     def __init__(self, data_path, model_output_path, batch_size=4, learning_rate=5e-5, epochs=100):
         self.data_path = data_path
         self.model_output_path = model_output_path
@@ -123,15 +75,6 @@ class GenerativeTrainer:
         print('Training in:', self.device)
 
     def run(self):
-        """Executes the model training process.
-
-        If a model already exists, it skips training. Otherwise, it loads the
-        data, initializes the tokenizer and model, runs the training loop,
-        and saves the best model based on loss.
-
-        :return: The path to the trained model directory.
-        :rtype: str
-        """
         if os.path.exists(os.path.join(self.model_output_path, 'gpt_selfies.pt')):
             print("Existing model found, skipping training.")
             return self.model_output_path
@@ -174,24 +117,7 @@ class GenerativeTrainer:
                 aux = total_loss
 
 class MoleculeGenerator:
-    """Generates and validates new molecules using a trained GPT model and a GNN.
-
-    This class takes a list of target polarizability values, uses the GPT model
-    to generate corresponding SELFIES strings, and then filters the generated
-    molecules. Filtering involves checking for valid SMILES, structural properties,
-    and using a GNN model to predict the polarizability and compare it to the
-    target, keeping only those within a specified error threshold.
-
-    :param model_path: Directory containing the trained GPT model.
-    :type model_path: str
-    :param output_path: Directory to save the generated molecules.
-    :type output_path: str
-    :param monomers_number_per_target: Number of molecules to generate for each target value.
-    :type monomers_number_per_target: int
-    :param threshold: The maximum allowed relative error between the GNN prediction
-                      and the target polarizability for a generated molecule to be kept.
-    :type threshold: float
-    """
+    """Generates and validates new molecules using a trained GPT model and a GNN."""
     def __init__(self, model_path, output_path, monomers_number_per_target, threshold):
         self.model_path = model_path
         self.output_path = output_path
@@ -208,19 +134,12 @@ class MoleculeGenerator:
         self.model = self.model.to(self.device)
         self.model.eval()
 
-        # Define the strict Acrylate pattern (C=C-C(=O)O)
-        self.acrylate_pattern = Chem.MolFromSmarts('[CX3]=[CX3][CX3](=[OX1])[OX2]')
+        # Define the broad Acryloyl pattern to block bifunctional monomers
+        self.acryloyl_pattern = Chem.MolFromSmarts('[CX3]=[CX3][CX3](=[OX1])[O,N,S]')
+        # Define the pattern specifically to find the root CH2 for SMILES formatting
+        self.root_pattern = Chem.MolFromSmarts('[CH2]=[CH][CX3](=[OX1])[O,N,S]')
 
     def generate_one(self, pol_val, max_len=1000):
-        """Generates a single molecule (as SMILES) based on a target polarizability.
-
-        :param pol_val: The target polarizability value (scaled).
-        :type pol_val: float
-        :param max_len: Maximum length of the generated SELFIES string.
-        :type max_len: int, optional
-        :return: A valid SMILES string or None if generation fails.
-        :rtype: str or None
-        """
         try:
             prompt = f"polarizability: {pol_val} selfies:"
             inputs = self.tokenizer(prompt, return_tensors='pt').to(self.device)
@@ -242,37 +161,64 @@ class MoleculeGenerator:
         
         except Exception as e:
             return None
+            
+    def is_stable(self, mol):
+        """Checks if the GPT generated molecule violates basic stability heuristics."""
+        unwanted_patterns = [
+            '[O,S]-[O,S]',                       # Peroxides / Disulfides
+            '[N]-[O]',                           # N-O single bonds
+            '[N]=[N+]=[N-]',                     # Azides
+            '[CX3](=[OX1])[OX2][CX3](=[OX1])',   # Anhydrides / mixed anhydrides
+            'O=C-O-C(=O)-O'                      # Dicarbonates
+        ]
+        for smarts in unwanted_patterns:
+            pat = Chem.MolFromSmarts(smarts)
+            if mol.HasSubstructMatch(pat):
+                return False
+        return True
     
-    def validate_molecule(self, smiles):
-        """Strict validation for Monomer Acrylates.
-        
-        Checks:
-        1. RDKit Validity
-        2. Single Fragment (No mixtures/dots)
-        3. EXACTLY ONE Acrylate Group (No cross-linkers)
-        """
+    def validate_and_root_molecule(self, smiles):
+        """Strict validation that returns the rooted SMILES if valid, or None if invalid."""
         if not smiles:
-            return False
+            return None
             
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
-            return False
+            return None
 
         # Check 1: Must be a single fragment (no dots in SMILES)
-        # Using GetMolFrags matches is more robust than string split
         frags = Chem.GetMolFrags(mol)
         if len(frags) > 1:
-            return False
+            return None
+            
+        # Check 2: Chemical stability
+        if not self.is_stable(mol):
+            return None
 
-        # Check 2: Must have EXACTLY ONE acrylate group
-        matches = mol.GetSubstructMatches(self.acrylate_pattern)
+        # Check 3: EXACTLY ONE polymerizable group (blocks Acrylate + Acrylamide hybrids)
+        matches = mol.GetSubstructMatches(self.acryloyl_pattern)
         if len(matches) != 1:
-            return False
+            return None
 
-        return True
+        # Check 4: Format SMILES to start with C=CC(=O)
+        root_matches = mol.GetSubstructMatches(self.root_pattern)
+        if len(root_matches) >= 1:
+            root_atom_idx = root_matches[0][0]
+            try:
+                smi = Chem.MolToSmiles(mol, isomericSmiles=False, rootedAtAtom=root_atom_idx)
+                # Cleanup RDKit's occasional branching variations
+                if smi.startswith('C=CC(=O)O') or smi.startswith('C=CC(O)='): 
+                    smi = smi.replace('C=CC(O)=', 'C=CC(=O)') 
+                elif smi.startswith('C=CC(=O)N') or smi.startswith('C=CC(N)='):
+                    smi = smi.replace('C=CC(N)=', 'C=CC(=O)')
+                elif smi.startswith('C=CC(=O)S') or smi.startswith('C=CC(S)='):
+                    smi = smi.replace('C=CC(S)=', 'C=CC(=O)')
+                return smi
+            except:
+                return None
+        return None
     
     def mol_to_data(self, smiles):
-        """Converts a SMILES string into a PyTorch Geometric `Data` object."""
         try:
             atoms = []
             bonds = []
@@ -312,7 +258,6 @@ class MoleculeGenerator:
             return None
     
     def load_gnn_model(self):
-        """Loads a pre-trained GNN model and its encoders for validation."""
         self.preprocess = PreProcess(
             input_csv='polygraphpy/data/polarizability_data.csv',
             train_input_data_path='prediction_test',
@@ -333,7 +278,6 @@ class MoleculeGenerator:
         return model
     
     def fine_tunning_with_gnn(self, df: pd.DataFrame):
-        """Validates generated molecules by predicting their polarizability with a GNN."""
         df_results = []
 
         for row in df.itertuples():
@@ -356,7 +300,6 @@ class MoleculeGenerator:
         return pd.DataFrame(df_results)
     
     def apply_error_threshold(self, df: pd.DataFrame):
-        """Filters generated molecules based on the GNN prediction error."""
         if df.empty:
             return df, df
 
@@ -373,16 +316,15 @@ class MoleculeGenerator:
         return df, df_filtered
     
     def post_processing(self, df: pd.DataFrame):
-        """Performs a series of post-processing and validation steps."""
         print('Making post processing with GNN prediction model.')
 
         df = df.drop_duplicates(subset='smiles').reset_index(drop=True)
         df = df.rename(columns={'smiles': 'smiles_A'})
         
-        # --- FIX: Apply Strict Validation Filter Here ---
-        # 1. We keep only rows where validation returns True
-        df['is_valid'] = df['smiles_A'].apply(self.validate_molecule)
-        df_filtered = df[df['is_valid']].reset_index(drop=True)
+        # --- FIX: Apply the strict validation and rooting map ---
+        # Any invalid molecule becomes `None`, then we drop the Nones.
+        df['smiles_A'] = df['smiles_A'].apply(self.validate_and_root_molecule)
+        df_filtered = df.dropna(subset=['smiles_A']).reset_index(drop=True)
         
         if df_filtered.empty:
             print("Warning: No valid mono-acrylates found after structural filtering.")
@@ -400,7 +342,6 @@ class MoleculeGenerator:
         return df_final, df_final_filtered
 
     def run(self, targets):
-        """Orchestrates the entire generation, validation, and saving process."""
         data = []
 
         for i in tqdm(targets):
