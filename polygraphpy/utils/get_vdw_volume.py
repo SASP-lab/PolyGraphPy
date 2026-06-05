@@ -1,9 +1,9 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolDescriptors
 
-def get_vdw_volume(smiles_list: list = [], verbose: bool = False) -> list:
+def get_vdw_volume(smiles_list: list | None = None, *, verbose: bool = False) -> list:
 
-    if len(smiles_list) == 0:
+    if smiles_list is None:
         smiles_list = [
             "CCO",
             "c1ccccc1",
