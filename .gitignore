@@ -198,3 +198,4 @@ polygraphpy/data/count_files.py
 nohup.out
 gpt_selfies.pt
 figures/
+examples/*.pdf
